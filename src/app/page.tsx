@@ -5,4 +5,3 @@ export default function Home(){
 }
 
 
-//supabase-pswrd: BGRg2D0zre3SsEqk
