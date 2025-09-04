@@ -1,0 +1,36 @@
+# Auth Form Color Improvement Plan
+
+## Current Color Problems
+1. Color mismatch: The auth page has a beautiful dark gradient background (slate-900 to purple-900), but the form card uses the default light theme colors
+2. Poor contrast: White card on dark background creates harsh contrast
+3. Inconsistent theming: The card doesn't integrate well with the purple gradient theme
+
+## Simple Color Enhancement Plan
+
+### 1. Card Background & Transparency
+- Make the card semi-transparent/glass-like to blend with the gradient background
+- Use dark card background that complements the purple gradient
+- Add subtle backdrop blur for modern glass effect
+
+### 2. Text Color Adjustments
+- Update text colors to work well on darker backgrounds
+- Ensure proper contrast for accessibility
+- Make the form labels and descriptions more readable
+
+### 3. Input Field Styling
+- Dark input backgrounds that fit the theme
+- Better border colors that complement the purple gradient
+- Improved focus states with purple accent colors
+
+### 4. Button Color Harmony
+- Update button colors to match the purple theme
+- Better hover states that work with the dark theme
+
+### 5. Error Message Colors
+- Adjust error styling to work on dark backgrounds
+- Maintain readability while fitting the theme
+
+## Implementation Notes
+- Focus on making the form visually cohesive with the existing gradient background
+- Keep implementation simple and focused on color improvements only
+- Maintain accessibility standards for contrast ratios
