@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,6 +29,7 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
 
   const form = useForm<AuthFormData>({
     resolver: zodResolver(authSchema),
@@ -58,7 +60,9 @@ export function AuthForm({ mode, onToggleMode }: AuthFormProps) {
         if (error) throw error
       }
       
-      // Redirect will be handled by auth state change
+      // Redirect to dashboard after successful auth
+      router.push('/')
+      router.refresh()
     } catch (error: any) {
       setError(error.message)
     } finally {
