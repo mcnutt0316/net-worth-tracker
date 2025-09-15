@@ -12,10 +12,9 @@
           getAll() {
             return cookieStore.getAll()
           },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
+          setAll() {
+            // No-op: Server Components can't modify cookies
+            // Middleware handles all cookie modifications
           },
         },
       }

@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/auth"
+import { getUser } from "@/lib/auth"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/server"
@@ -12,7 +12,12 @@ async function signOut() {
 }
 
 export default async function Home() {
-  const user = await requireAuth()
+  const user = await getUser()
+
+  // Middleware should ensure user exists, but add safety check
+  if (!user) {
+    redirect("/auth")
+  }
 
   return (
     <div className="min-h-screen bg-background p-8">
