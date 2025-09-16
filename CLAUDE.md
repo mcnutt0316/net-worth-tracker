@@ -25,7 +25,7 @@ This file contains instructions and context for Claude Code when working on this
 ```
 src/
 ├── app/
-│   ├── auth/page.tsx          # Authentication page
+│   ├── auth/page.tsx          # Authentication page with improved styling
 │   ├── page.tsx              # Main dashboard (protected)
 │   ├── layout.tsx            # Root layout
 │   └── globals.css           # Global styles
@@ -36,25 +36,29 @@ src/
 │   │   ├── form.tsx
 │   │   ├── input.tsx
 │   │   └── label.tsx
-│   └── auth-form.tsx         # Authentication form component
-└── lib/
-    ├── auth.ts              # Auth utilities (requireAuth, getUser)
-    ├── client.ts            # Supabase client-side
-    ├── server.ts            # Supabase server-side
-    └── utils.ts             # Utility functions (cn)
+│   └── auth-form.tsx         # Authentication form with glass effect styling
+├── lib/
+│   ├── auth.ts              # Auth utilities (requireAuth, getUser)
+│   ├── client.ts            # Supabase client-side
+│   ├── server.ts            # Supabase server-side (updated getUser)
+│   └── utils.ts             # Utility functions (cn)
+└── middleware.ts            # Server-side route protection
 ```
 
 ## Key Features (Current Implementation)
-- **Authentication**: Sign in/up with Supabase Auth
-- **Protected Routes**: Dashboard requires authentication
+- **Authentication**: Sign in/up with Supabase Auth with improved UX
+- **Protected Routes**: Dashboard requires authentication with middleware protection
 - **Dashboard**: Basic net worth display (assets, liabilities, net worth cards)
 - **Responsive Design**: Mobile-first with Tailwind CSS
+- **Auth Form Styling**: Semi-transparent glass effect with purple theme integration
+- **Route Protection**: Server-side middleware for authentication
 
 ## Authentication Flow
-1. Unauthenticated users redirected to `/auth`
-2. Auth form handles both sign in and sign up
+1. Unauthenticated users redirected to `/auth` via middleware
+2. Auth form handles both sign in and sign up with improved styling
 3. After auth, users redirected to dashboard at `/`
-4. `requireAuth()` utility protects dashboard route
+4. `getUser()` utility (updated from `getAuth()`) protects dashboard route
+5. Server-side middleware provides additional route protection
 
 ## Database Configuration
 - **Supabase**: Connection pooling and direct connection URLs configured
@@ -69,9 +73,11 @@ src/
 - **File Structure**: Feature-based organization in `src/`
 
 ## Important Files
-- `src/app/page.tsx:14` - Main dashboard component with auth check
-- `src/lib/auth.ts:10` - Authentication utilities
-- `src/components/auth-form.tsx` - Authentication form component
+- `src/app/page.tsx` - Main dashboard component with auth check
+- `src/lib/auth.ts` - Authentication utilities (requireAuth, getUser)
+- `src/lib/server.ts` - Server-side Supabase utilities (updated getUser function)
+- `src/components/auth-form.tsx` - Authentication form with glass effect styling
+- `src/middleware.ts` - Server-side route protection middleware
 - `components.json` - ShadCN/UI configuration
 - `.env.local` - Environment variables (Supabase config)
 
@@ -81,6 +87,9 @@ src/
 - ShadCN/UI with default theme and CSS variables
 - Responsive design with mobile-first approach
 - No TypeScript checking command configured (only lint)
+- Auth form styled with glass morphism effect (semi-transparent bg with backdrop blur)
+- Server-side middleware handles route protection automatically
+- Updated authentication utilities from `getAuth()` to `getUser()` pattern
 
 ## Next Steps (Potential Features)
 - Asset/liability management forms
