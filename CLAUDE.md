@@ -62,7 +62,12 @@ src/
 
 ## Database Configuration
 - **Supabase**: Connection pooling and direct connection URLs configured
-- **Prisma**: ORM setup for database operations
+- **Prisma**: ORM setup for database operations with complete schema
+- **Database Tables**:
+  - `users` - User authentication data
+  - `assets` - User assets (savings, investments, property, etc.)
+  - `liabilities` - User debts (loans, credit cards, mortgages, etc.)
+- **Relationships**: Foreign keys linking assets/liabilities to users with cascade delete
 - Environment variables in `.env.local`
 
 ## Code Style Guidelines
@@ -78,8 +83,11 @@ src/
 - `src/lib/server.ts` - Server-side Supabase utilities (updated getUser function)
 - `src/components/auth-form.tsx` - Authentication form with glass effect styling
 - `src/middleware.ts` - Server-side route protection middleware
+- `prisma/schema.prisma` - Database schema with User, Asset, and Liability models
+- `prisma/migrations/` - Database migration history
 - `components.json` - ShadCN/UI configuration
 - `.env.local` - Environment variables (Supabase config)
+- `asset-liability-implementation-plan.txt` - Development roadmap and progress
 
 ## Development Notes
 - Uses App Router with Server Components
@@ -90,10 +98,19 @@ src/
 - Auth form styled with glass morphism effect (semi-transparent bg with backdrop blur)
 - Server-side middleware handles route protection automatically
 - Updated authentication utilities from `getAuth()` to `getUser()` pattern
+- **Database Schema Completed** (Sept 16, 2025): Asset and Liability tables created with proper relationships
 
-## Next Steps (Potential Features)
-- Asset/liability management forms
-- Data persistence with Supabase
-- Charts/graphs for net worth tracking
-- Categories for assets/liabilities
-- Historical tracking and trends
+## Project Status
+**Phase 1 Complete ✅**: Database schema design and implementation
+- Asset and Liability models added to Prisma schema
+- Migration `20250916155113_add_assets_and_liabilities` successfully applied
+- Tables created in Supabase with proper foreign key relationships
+- Prisma Client regenerated with new TypeScript types
+
+## Next Steps (Implementation Plan)
+**Phase 2**: Database Operations (CRUD functions)
+**Phase 3**: UI Components & Forms
+**Phase 4**: Dashboard Integration
+**Phase 5**: Polish & Enhancement
+
+See `asset-liability-implementation-plan.txt` for detailed roadmap.

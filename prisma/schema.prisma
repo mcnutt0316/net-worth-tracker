@@ -13,7 +13,42 @@ model User {
   id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email           String           @unique
   name            String?
-  
+
+  // Relations - one user can have many assets and liabilities
+  assets          Asset[]
+  liabilities     Liability[]
 
   @@map("users")
+}
+
+model Asset {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   // e.g., "Savings Account", "House"
+  category    String   // e.g., "Cash", "Real Estate", "Investments"
+  value       Decimal  @db.Decimal(15, 2) // Stores money precisely (up to 999,999,999,999.99)
+  description String?  // Optional notes about the asset
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign key relationship to User
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("assets")
+}
+
+model Liability {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   // e.g., "Credit Card", "Mortgage"
+  category    String   // e.g., "Credit Card", "Loan", "Mortgage"
+  value       Decimal  @db.Decimal(15, 2) // Stores debt amount precisely
+  description String?  // Optional notes about the liability
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Foreign key relationship to User
+  userId      String   @db.Uuid
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("liabilities")
 }
