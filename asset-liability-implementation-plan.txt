@@ -1,0 +1,53 @@
+# Asset & Liability Tracking Implementation Plan
+
+## Phase 1: Database Schema Design
+1. **Create Assets table** in Prisma schema
+   - `id`, `userId` (foreign key), `name`, `category`, `value`, `description`, `createdAt`, `updatedAt`
+2. **Create Liabilities table** in Prisma schema
+   - `id`, `userId` (foreign key), `name`, `category`, `value`, `description`, `createdAt`, `updatedAt`
+3. **Generate and run Prisma migration** to create tables in Supabase
+
+## Phase 2: Database Operations (CRUD)
+4. **Create data access functions** in new `src/lib/assets.ts` and `src/lib/liabilities.ts`
+   - `getAssets(userId)` - fetch user's assets
+   - `createAsset(userId, assetData)` - add new asset
+   - `updateAsset(assetId, updates)` - edit existing asset
+   - `deleteAsset(assetId)` - remove asset
+   - Similar functions for liabilities
+5. **Add calculation utilities**
+   - `calculateTotalAssets(assets)`
+   - `calculateTotalLiabilities(liabilities)`
+   - `calculateNetWorth(totalAssets, totalLiabilities)`
+
+## Phase 3: UI Components & Forms
+6. **Create form components** using ShadCN/UI + React Hook Form
+   - `AssetForm.tsx` - add/edit assets with Zod validation
+   - `LiabilityForm.tsx` - add/edit liabilities with Zod validation
+7. **Create list components**
+   - `AssetsList.tsx` - display assets with edit/delete actions
+   - `LiabilitiesList.tsx` - display liabilities with edit/delete actions
+
+## Phase 4: Dashboard Integration
+8. **Update main dashboard** (`src/app/page.tsx`)
+   - Fetch real asset/liability data from database
+   - Calculate and display actual totals
+   - Add buttons to open add/edit forms
+   - Replace hardcoded $0.00 with real calculations
+
+## Phase 5: Polish & Enhancement
+9. **Add categories system** (e.g., "Savings", "Real Estate", "Credit Cards")
+10. **Implement responsive design** for mobile/desktop
+11. **Add form validation** with helpful error messages
+12. **Test all functionality** end-to-end
+
+**Learning Goals:**
+- Database relationships and foreign keys
+- CRUD operations with Prisma ORM
+- Form handling with React Hook Form + Zod
+- Server Actions in Next.js 15
+- TypeScript with database operations
+
+**Commands for Phase 1:**
+1. Edit prisma/schema.prisma to add Asset and Liability models
+2. Run: npx prisma migrate dev --name "add-assets-and-liabilities"
+3. Run: npx prisma generate
