@@ -81,6 +81,8 @@ src/
 - `src/app/page.tsx` - Main dashboard component with auth check
 - `src/lib/auth.ts` - Authentication utilities (requireAuth, getUser)
 - `src/lib/server.ts` - Server-side Supabase utilities (updated getUser function)
+- `src/lib/assets.ts` - Asset CRUD operations (completed Sept 17, 2025)
+- `src/lib/liabilities.ts` - Liability CRUD operations (completed Sept 17, 2025)
 - `src/components/auth-form.tsx` - Authentication form with glass effect styling
 - `src/middleware.ts` - Server-side route protection middleware
 - `prisma/schema.prisma` - Database schema with User, Asset, and Liability models
@@ -101,14 +103,21 @@ src/
 - **Database Schema Completed** (Sept 16, 2025): Asset and Liability tables created with proper relationships
 
 ## Project Status
-**Phase 1 Complete ✅**: Database schema design and implementation
+**Phase 1 Complete ✅**: Database schema design and implementation (Sept 16, 2025)
 - Asset and Liability models added to Prisma schema
 - Migration `20250916155113_add_assets_and_liabilities` successfully applied
 - Tables created in Supabase with proper foreign key relationships
 - Prisma Client regenerated with new TypeScript types
 
+**Phase 2 In Progress 🔄**: Database Operations (CRUD functions) (Sept 17, 2025)
+- ✅ Asset CRUD functions completed (`src/lib/assets.ts`)
+- ✅ Liability CRUD functions completed (`src/lib/liabilities.ts`)
+- ✅ Global Prisma instance pattern implemented
+- ✅ TypeScript types and error handling added
+- ⏳ Calculation utilities (need to complete tomorrow)
+
 ## Next Steps (Implementation Plan)
-**Phase 2**: Database Operations (CRUD functions)
+**Complete Phase 2**: Finish calculation utilities
 **Phase 3**: UI Components & Forms
 **Phase 4**: Dashboard Integration
 **Phase 5**: Polish & Enhancement

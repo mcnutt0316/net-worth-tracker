@@ -10,17 +10,20 @@
    - Tables successfully created in Supabase database
    - Prisma Client regenerated with new models
 
-## Phase 2: Database Operations (CRUD)
-4. **Create data access functions** in new `src/lib/assets.ts` and `src/lib/liabilities.ts`
-   - `getAssets(userId)` - fetch user's assets
-   - `createAsset(userId, assetData)` - add new asset
-   - `updateAsset(assetId, updates)` - edit existing asset
-   - `deleteAsset(assetId)` - remove asset
-   - Similar functions for liabilities
-5. **Add calculation utilities**
-   - `calculateTotalAssets(assets)`
-   - `calculateTotalLiabilities(liabilities)`
-   - `calculateNetWorth(totalAssets, totalLiabilities)`
+## Phase 2: Database Operations (CRUD) 🔄 IN PROGRESS (Sept 17, 2025)
+4. ✅ **Create data access functions** in new `src/lib/assets.ts` and `src/lib/liabilities.ts`
+   - ✅ `getAssets(userId)` - fetch user's assets
+   - ✅ `createAsset(userId, assetData)` - add new asset
+   - ✅ `updateAsset(assetId, updates)` - edit existing asset
+   - ✅ `deleteAsset(assetId)` - remove asset
+   - ✅ Similar functions for liabilities (all CRUD operations completed)
+   - ✅ Global Prisma instance pattern implemented
+   - ✅ TypeScript types defined for data operations
+   - ✅ Error handling and try/catch blocks added
+5. 🔄 **Add calculation utilities** (STARTED - need to complete tomorrow)
+   - ⏳ `calculateTotalAssets(assets)` - needs implementation
+   - ⏳ `calculateTotalLiabilities(liabilities)` - needs implementation
+   - ⏳ `calculateNetWorth(totalAssets, totalLiabilities)` - needs implementation
 
 ## Phase 3: UI Components & Forms
 6. **Create form components** using ShadCN/UI + React Hook Form
