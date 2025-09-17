@@ -32,7 +32,7 @@ export type UpdateAssetData = {
  */
 export async function getAssets(userId: string) {
   try {
-    const assets = await prisma.asset.findMany({
+    const assets = await prisma.assets.findMany({
       where: {
         userId: userId // Only get assets belonging to this user
       },
@@ -55,7 +55,7 @@ export async function getAssets(userId: string) {
  */
 export async function createAsset(userId: string, assetData: CreateAssetData) {
   try {
-    const asset = await prisma.asset.create({
+    const asset = await prisma.assets.create({
       data: {
         name: assetData.name,
         category: assetData.category,
@@ -79,7 +79,7 @@ export async function createAsset(userId: string, assetData: CreateAssetData) {
  */
 export async function updateAsset(assetId: string, updates: UpdateAssetData) {
   try {
-    const asset = await prisma.asset.update({
+    const asset = await prisma.assets.update({
       where: {
         id: assetId
       },
@@ -99,7 +99,7 @@ export async function updateAsset(assetId: string, updates: UpdateAssetData) {
  */
 export async function deleteAsset(assetId: string) {
   try {
-    await prisma.asset.delete({
+    await prisma.assets.delete({
       where: {
         id: assetId
       }
@@ -118,7 +118,7 @@ export async function deleteAsset(assetId: string) {
  */
 export async function getAssetById(assetId: string) {
   try {
-    const asset = await prisma.asset.findUnique({
+    const asset = await prisma.assets.findUnique({
       where: {
         id: assetId
       }
