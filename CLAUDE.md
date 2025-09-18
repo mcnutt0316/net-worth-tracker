@@ -81,8 +81,9 @@ src/
 - `src/app/page.tsx` - Main dashboard component with auth check
 - `src/lib/auth.ts` - Authentication utilities (requireAuth, getUser)
 - `src/lib/server.ts` - Server-side Supabase utilities (updated getUser function)
-- `src/lib/assets.ts` - Asset CRUD operations (completed Sept 17, 2025)
-- `src/lib/liabilities.ts` - Liability CRUD operations (completed Sept 17, 2025)
+- `src/lib/assets.ts` - Asset CRUD operations (completed Sept 18, 2025)
+- `src/lib/liabilities.ts` - Liability CRUD operations (completed Sept 18, 2025)
+- `src/lib/calculations.ts` - Net worth calculation utilities (completed Sept 18, 2025)
 - `src/components/auth-form.tsx` - Authentication form with glass effect styling
 - `src/middleware.ts` - Server-side route protection middleware
 - `prisma/schema.prisma` - Database schema with User, Asset, and Liability models
@@ -109,17 +110,18 @@ src/
 - Tables created in Supabase with proper foreign key relationships
 - Prisma Client regenerated with new TypeScript types
 
-**Phase 2 In Progress 🔄**: Database Operations (CRUD functions) (Sept 17, 2025)
+**Phase 2 Complete ✅**: Database Operations (CRUD functions) (Sept 18, 2025)
 - ✅ Asset CRUD functions completed (`src/lib/assets.ts`)
 - ✅ Liability CRUD functions completed (`src/lib/liabilities.ts`)
 - ✅ Global Prisma instance pattern implemented
 - ✅ TypeScript types and error handling added
-- ⏳ Calculation utilities (need to complete tomorrow)
+- ✅ Calculation utilities completed (`src/lib/calculations.ts`)
+- ✅ All functions tested and verified working
+- ✅ Currency formatting and net worth calculations implemented
 
 ## Next Steps (Implementation Plan)
-**Complete Phase 2**: Finish calculation utilities
-**Phase 3**: UI Components & Forms
-**Phase 4**: Dashboard Integration
-**Phase 5**: Polish & Enhancement
+**Phase 3**: UI Components & Forms (forms, validation, user input)
+**Phase 4**: Dashboard Integration (connect UI to database)
+**Phase 5**: Polish & Enhancement (styling, features, testing)
 
 See `asset-liability-implementation-plan.txt` for detailed roadmap.

@@ -31,7 +31,7 @@ export type UpdateLiabilityData = {
  */
 export async function getLiabilities(userId: string) {
   try {
-    const liabilities = await prisma.liabilities.findMany({
+    const liabilities = await prisma.liability.findMany({
       where: {
         userId: userId
       },
@@ -54,7 +54,7 @@ export async function getLiabilities(userId: string) {
  */
 export async function createLiability(userId: string, liabilityData: CreateLiabilityData) {
   try {
-    const liability = await prisma.liabilities.create({
+    const liability = await prisma.liability.create({
       data: {
         name: liabilityData.name,
         category: liabilityData.category,
@@ -78,7 +78,7 @@ export async function createLiability(userId: string, liabilityData: CreateLiabi
  */
 export async function updateLiability(liabilityId: string, updates: UpdateLiabilityData) {
   try {
-    const liability = await prisma.liabilities.update({
+    const liability = await prisma.liability.update({
       where: {
         id: liabilityId
       },
@@ -98,7 +98,7 @@ export async function updateLiability(liabilityId: string, updates: UpdateLiabil
  */
 export async function deleteLiability(liabilityId: string) {
   try {
-    await prisma.liabilities.delete({
+    await prisma.liability.delete({
       where: {
         id: liabilityId
       }
@@ -117,7 +117,7 @@ export async function deleteLiability(liabilityId: string) {
  */
 export async function getLiabilityById(liabilityId: string) {
   try {
-    const liability = await prisma.liabilities.findUnique({
+    const liability = await prisma.liability.findUnique({
       where: {
         id: liabilityId
       }
