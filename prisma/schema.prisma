@@ -9,18 +9,6 @@ datasource db {
 }
 
 
-model User {
-  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email           String           @unique
-  name            String?
-
-  // Relations - one user can have many assets and liabilities
-  assets          Asset[]
-  liabilities     Liability[]
-
-  @@map("users")
-}
-
 model Asset {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String   // e.g., "Savings Account", "House"
@@ -30,9 +18,8 @@ model Asset {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Foreign key relationship to User
+  // Supabase Auth user ID (no foreign key constraint)
   userId      String   @db.Uuid
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("assets")
 }
@@ -46,9 +33,8 @@ model Liability {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Foreign key relationship to User
+  // Supabase Auth user ID (no foreign key constraint)
   userId      String   @db.Uuid
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("liabilities")
 }
