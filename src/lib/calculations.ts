@@ -1,11 +1,21 @@
 import { Asset, Liability } from '@prisma/client'
 
+// 🎓 LEARNING: Generic types for transformed data
+export type AssetWithNumberValue = Omit<Asset, 'value' | 'description'> & {
+  value: number
+  description?: string
+}
+export type LiabilityWithNumberValue = Omit<Liability, 'value' | 'description'> & {
+  value: number
+  description?: string
+}
+
 /**
  * Calculate the total value of all assets
- * @param assets - Array of asset objects from the database
+ * @param assets - Array of asset objects (with number or Decimal values)
  * @returns Total value as a number
  */
-export function calculateTotalAssets(assets: Asset[]): number {
+export function calculateTotalAssets(assets: Asset[] | AssetWithNumberValue[]): number {
   return assets.reduce((total, asset) => {
     // Prisma returns Decimal as a Decimal object, convert to number
     const assetValue = typeof asset.value === 'number' ? asset.value : Number(asset.value)
@@ -15,10 +25,10 @@ export function calculateTotalAssets(assets: Asset[]): number {
 
 /**
  * Calculate the total value of all liabilities (debts)
- * @param liabilities - Array of liability objects from the database
+ * @param liabilities - Array of liability objects (with number or Decimal values)
  * @returns Total liability value as a number
  */
-export function calculateTotalLiabilities(liabilities: Liability[]): number {
+export function calculateTotalLiabilities(liabilities: Liability[] | LiabilityWithNumberValue[]): number {
   return liabilities.reduce((total, liability) => {
     // Prisma returns Decimal as a Decimal object, convert to number
     const liabilityValue = typeof liability.value === 'number' ? liability.value : Number(liability.value)
