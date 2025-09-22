@@ -7,6 +7,9 @@ import { getUserAssetsAction, getUserLiabilitiesAction } from "./actions"
 import { calculateTotalAssets, calculateTotalLiabilities, calculateNetWorth, formatCurrency } from "@/lib/calculations"
 import { DashboardClient } from "@/components/DashboardClient"
 
+// Force this page to be dynamic - prevents static generation
+export const dynamic = 'force-dynamic'
+
 async function signOut() {
   "use server"
   const supabase = await createClient()
