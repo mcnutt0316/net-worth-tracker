@@ -61,13 +61,12 @@ src/
 5. Server-side middleware provides additional route protection
 
 ## Database Configuration
-- **Supabase**: Connection pooling and direct connection URLs configured
+- **Supabase**: Connection pooling and direct connection URLs configured, handles user authentication
 - **Prisma**: ORM setup for database operations with complete schema
 - **Database Tables**:
-  - `users` - User authentication data
-  - `assets` - User assets (savings, investments, property, etc.)
-  - `liabilities` - User debts (loans, credit cards, mortgages, etc.)
-- **Relationships**: Foreign keys linking assets/liabilities to users with cascade delete
+  - `assets` - User assets (savings, investments, property, etc.) with Supabase Auth user IDs
+  - `liabilities` - User debts (loans, credit cards, mortgages, etc.) with Supabase Auth user IDs
+- **User Management**: Uses Supabase Auth directly (no custom User model), assets/liabilities store auth user IDs
 - Environment variables in `.env.local`
 
 ## Code Style Guidelines
@@ -86,7 +85,7 @@ src/
 - `src/lib/calculations.ts` - Net worth calculation utilities (completed Sept 18, 2025)
 - `src/components/auth-form.tsx` - Authentication form with glass effect styling
 - `src/middleware.ts` - Server-side route protection middleware
-- `prisma/schema.prisma` - Database schema with User, Asset, and Liability models
+- `prisma/schema.prisma` - Database schema with Asset and Liability models (uses Supabase Auth for users)
 - `prisma/migrations/` - Database migration history
 - `components.json` - ShadCN/UI configuration
 - `.env.local` - Environment variables (Supabase config)
@@ -107,8 +106,9 @@ src/
 **Phase 1 Complete ✅**: Database schema design and implementation (Sept 16, 2025)
 - Asset and Liability models added to Prisma schema
 - Migration `20250916155113_add_assets_and_liabilities` successfully applied
-- Tables created in Supabase with proper foreign key relationships
-- Prisma Client regenerated with new TypeScript types
+- **Phase 1 Revision (Sept 21, 2025)**: Removed custom User model to fix foreign key constraints
+- Migration `20250921180329_remove_user_model` applied - uses Supabase Auth user IDs directly
+- Tables use Supabase Auth user IDs without foreign key constraints
 
 **Phase 2 Complete ✅**: Database Operations (CRUD functions) (Sept 18, 2025)
 - ✅ Asset CRUD functions completed (`src/lib/assets.ts`)
@@ -118,10 +118,20 @@ src/
 - ✅ Calculation utilities completed (`src/lib/calculations.ts`)
 - ✅ All functions tested and verified working
 - ✅ Currency formatting and net worth calculations implemented
+- ✅ Foreign key constraint issue resolved (Sept 21, 2025)
 
-## Next Steps (Implementation Plan)
-**Phase 3**: UI Components & Forms (forms, validation, user input)
-**Phase 4**: Dashboard Integration (connect UI to database)
-**Phase 5**: Polish & Enhancement (styling, features, testing)
+**Phase 3 Complete ✅**: UI Components & Forms (Sept 2025)
+- ✅ AssetForm.tsx and LiabilityForm.tsx with Zod validation
+- ✅ AssetsList.tsx and LiabilitiesList.tsx with edit/delete actions
+- ✅ React Hook Form integration with ShadCN/UI components
+
+**Phase 4 Complete ✅**: Dashboard Integration (Sept 2025)
+- ✅ Server Actions implemented in `src/app/actions.ts`
+- ✅ DashboardClient.tsx with real database integration
+- ✅ Full CRUD operations working end-to-end
+- ✅ Real net worth calculations replacing hardcoded values
+
+## Current Status: Phase 5 (Polish & Enhancement)
+**Next Steps**: Styling improvements, additional features, testing
 
 See `asset-liability-implementation-plan.txt` for detailed roadmap.

@@ -1,6 +1,6 @@
 # Asset & Liability Tracking Implementation Plan
 
-## Phase 1: Database Schema Design ✅ COMPLETED (Sept 16, 2025)
+## Phase 1: Database Schema Design ✅ COMPLETED (Sept 16, 2025) - REVISED (Sept 21, 2025)
 1. ✅ **Create Assets table** in Prisma schema
    - `id`, `userId` (foreign key), `name`, `category`, `value`, `description`, `createdAt`, `updatedAt`
 2. ✅ **Create Liabilities table** in Prisma schema
@@ -9,6 +9,11 @@
    - Migration created: `20250916155113_add_assets_and_liabilities`
    - Tables successfully created in Supabase database
    - Prisma Client regenerated with new models
+4. ✅ **Phase 1 Revision (Sept 21, 2025)**: Removed custom User model to fix foreign key constraints
+   - Issue: Supabase Auth and Prisma User models were not synchronized
+   - Solution: Removed User model, use Supabase Auth user IDs directly in assets/liabilities
+   - Migration created: `20250921180329_remove_user_model`
+   - Foreign key constraint error resolved - assets/liabilities creation now works
 
 ## Phase 2: Database Operations (CRUD) ✅ COMPLETED (Sept 18, 2025)
 4. ✅ **Create data access functions** in new `src/lib/assets.ts` and `src/lib/liabilities.ts`
@@ -29,20 +34,21 @@
    - ✅ `calculateAssetAllocation()` - bonus feature for percentages
    - ✅ All functions tested and working via API endpoint
 
-## Phase 3: UI Components & Forms
-6. **Create form components** using ShadCN/UI + React Hook Form
-   - `AssetForm.tsx` - add/edit assets with Zod validation
-   - `LiabilityForm.tsx` - add/edit liabilities with Zod validation
-7. **Create list components**
-   - `AssetsList.tsx` - display assets with edit/delete actions
-   - `LiabilitiesList.tsx` - display liabilities with edit/delete actions
+## Phase 3: UI Components & Forms ✅ COMPLETED
+6. ✅ **Create form components** using ShadCN/UI + React Hook Form
+   - ✅ `AssetForm.tsx` - add/edit assets with Zod validation
+   - ✅ `LiabilityForm.tsx` - add/edit liabilities with Zod validation
+7. ✅ **Create list components**
+   - ✅ `AssetsList.tsx` - display assets with edit/delete actions
+   - ✅ `LiabilitiesList.tsx` - display liabilities with edit/delete actions
 
-## Phase 4: Dashboard Integration
-8. **Update main dashboard** (`src/app/page.tsx`)
-   - Fetch real asset/liability data from database
-   - Calculate and display actual totals
-   - Add buttons to open add/edit forms
-   - Replace hardcoded $0.00 with real calculations
+## Phase 4: Dashboard Integration ✅ COMPLETED
+8. ✅ **Update main dashboard** (`src/app/page.tsx`)
+   - ✅ Fetch real asset/liability data from database (`src/app/actions.ts`)
+   - ✅ Calculate and display actual totals (`DashboardClient.tsx`)
+   - ✅ Add buttons to open add/edit forms
+   - ✅ Replace hardcoded $0.00 with real calculations
+   - ✅ Server Actions implemented for all CRUD operations
 
 ## Phase 5: Polish & Enhancement
 9. **Add categories system** (e.g., "Savings", "Real Estate", "Credit Cards")
