@@ -35,63 +35,107 @@ export default async function Home() {
   const netWorth = calculateNetWorth(totalAssets, totalLiabilities)
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Net Worth Tracker</h1>
+    <div className="min-h-screen p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Enhanced header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-10">
+          <div className="mb-4 sm:mb-0">
+            <h1 className="heading-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Net Worth Tracker
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Track your financial progress and build wealth
+            </p>
+          </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              Welcome, {user.email}
-            </span>
+            <div className="text-right hidden sm:block">
+              <p className="text-sm text-muted-foreground">Welcome back</p>
+              <p className="font-medium">{user.email}</p>
+            </div>
             <form action={signOut}>
-              <Button variant="outline" type="submit">
+              <Button variant="outline" type="submit" className="btn-financial">
                 Sign Out
               </Button>
             </form>
           </div>
         </div>
 
-        {/* 🎓 LEARNING: Summary cards with real data */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Assets</CardTitle>
+        {/* Enhanced summary cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-fade-in">
+          <Card className="financial-card" style={{ animationDelay: '0.1s' }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Total Assets
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-green-600">
-                {formatCurrency(totalAssets)}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {assets.length} asset{assets.length !== 1 ? 's' : ''}
-              </p>
+              <div className="space-y-2">
+                <p className="financial-amount-lg text-green-600">
+                  {formatCurrency(totalAssets)}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {assets.length} asset{assets.length !== 1 ? 's' : ''}
+                  </span>
+                  {totalAssets > 0 && (
+                    <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-medium">
+                      Growing
+                    </span>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Liabilities</CardTitle>
+          <Card className="financial-card" style={{ animationDelay: '0.2s' }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Total Liabilities
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-red-600">
-                {formatCurrency(totalLiabilities)}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {liabilities.length} liabilit{liabilities.length !== 1 ? 'ies' : 'y'}
-              </p>
+              <div className="space-y-2">
+                <p className="financial-amount-lg text-red-600">
+                  {formatCurrency(totalLiabilities)}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {liabilities.length} liabilit{liabilities.length !== 1 ? 'ies' : 'y'}
+                  </span>
+                  {totalLiabilities > 0 && (
+                    <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full font-medium">
+                      Active Debt
+                    </span>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Net Worth</CardTitle>
+          <Card className="financial-card border-2" style={{ animationDelay: '0.3s' }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                Net Worth
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className={`text-2xl font-bold ${netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(netWorth)}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                {netWorth >= 0 ? 'Positive net worth' : 'Negative net worth'}
-              </p>
+              <div className="space-y-2">
+                <p className={`financial-amount-lg ${netWorth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(netWorth)}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 text-xs rounded-full font-medium ${
+                    netWorth >= 0
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {netWorth >= 0 ? '📈 Positive' : '📉 Negative'}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {netWorth >= 0 ? 'Keep it up!' : 'Focus on growth'}
+                  </span>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

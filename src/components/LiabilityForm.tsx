@@ -58,18 +58,25 @@ export function LiabilityForm({ onSubmit, initialData, isLoading }: LiabilityFor
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{initialData ? "Edit Liability" : "Add New Liability"}</CardTitle>
-        <CardDescription>
-          {initialData
-            ? "Update your liability information below"
-            : "Add a new liability (debt) to track in your net worth"}
-        </CardDescription>
+    <Card className="w-full max-w-2xl mx-auto financial-card">
+      <CardHeader className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+            <span className="text-red-600 text-lg">📋</span>
+          </div>
+          <div>
+            <CardTitle className="heading-md">{initialData ? "Edit Liability" : "Add New Liability"}</CardTitle>
+            <CardDescription className="mt-1">
+              {initialData
+                ? "Update your liability information below"
+                : "Add a new liability (debt) to track in your net worth"}
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 form-enhanced">
             <FormField
               control={form.control}
               name="name"
@@ -152,9 +159,24 @@ export function LiabilityForm({ onSubmit, initialData, isLoading }: LiabilityFor
               )}
             />
 
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? "Saving..." : (initialData ? "Update Liability" : "Add Liability")}
-            </Button>
+            <div className="pt-4">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full btn-financial h-12 text-base font-medium"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span>{initialData ? "💾 Update Liability" : "📋 Add Liability"}</span>
+                  </div>
+                )}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

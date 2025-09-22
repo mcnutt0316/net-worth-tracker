@@ -40,16 +40,21 @@ export function LiabilitiesList({ liabilities, onEdit, onDelete, onAdd, isLoadin
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="financial-card">
+      <CardHeader className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Your Liabilities</CardTitle>
-            <CardDescription>
-              Manage your debts and outstanding balances
-            </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+              <span className="text-red-600 text-lg">📋</span>
+            </div>
+            <div>
+              <CardTitle className="heading-md">Your Liabilities</CardTitle>
+              <CardDescription>
+                Manage your debts and outstanding balances
+              </CardDescription>
+            </div>
           </div>
-          <Button onClick={onAdd} disabled={isLoading}>
+          <Button onClick={onAdd} disabled={isLoading} className="btn-financial">
             <Plus className="h-4 w-4 mr-2" />
             Add Liability
           </Button>
@@ -67,20 +72,20 @@ export function LiabilitiesList({ liabilities, onEdit, onDelete, onAdd, isLoadin
           </div>
         ) : (
           <div className="space-y-4">
-            {liabilities.map((liability) => (
+            {liabilities.map((liability, index) => (
               <div
                 key={liability.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-card"
+                className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-md transition-all duration-200 animate-slide-in-up"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-medium">{liability.name}</h3>
-                    <span className="px-2 py-1 text-xs rounded-full bg-destructive/10 text-destructive">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-semibold text-lg">{liability.name}</h3>
+                    <span className="px-3 py-1 text-xs rounded-full bg-red-100 text-red-700 font-medium">
                       {liability.category}
                     </span>
                   </div>
-                  {/* 🎓 LEARNING: Different color for debts (red vs green for assets) */}
-                  <p className="text-2xl font-bold text-red-600">
+                  <p className="financial-amount-lg text-red-600">
                     {formatCurrency(liability.value)}
                   </p>
                   {liability.description && (

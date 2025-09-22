@@ -129,9 +129,10 @@ export function DashboardClient({ initialAssets, initialLiabilities }: Dashboard
         <div className="text-center">
           <button
             onClick={() => setUIState({ type: 'list' })}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
           >
-            ← Back to Dashboard
+            <span>←</span>
+            Back to Dashboard
           </button>
         </div>
       </div>
@@ -154,9 +155,10 @@ export function DashboardClient({ initialAssets, initialLiabilities }: Dashboard
         <div className="text-center">
           <button
             onClick={() => setUIState({ type: 'list' })}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
           >
-            ← Back to Dashboard
+            <span>←</span>
+            Back to Dashboard
           </button>
         </div>
       </div>
@@ -173,9 +175,10 @@ export function DashboardClient({ initialAssets, initialLiabilities }: Dashboard
         <div className="text-center">
           <button
             onClick={() => setUIState({ type: 'list' })}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
           >
-            ← Back to Dashboard
+            <span>←</span>
+            Back to Dashboard
           </button>
         </div>
       </div>
@@ -198,9 +201,10 @@ export function DashboardClient({ initialAssets, initialLiabilities }: Dashboard
         <div className="text-center">
           <button
             onClick={() => setUIState({ type: 'list' })}
-            className="text-sm text-muted-foreground hover:text-foreground"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
           >
-            ← Back to Dashboard
+            <span>←</span>
+            Back to Dashboard
           </button>
         </div>
       </div>

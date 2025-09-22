@@ -69,18 +69,25 @@ export function AssetForm({ onSubmit, initialData, isLoading }: AssetFormProps) 
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle>{initialData ? "Edit Asset" : "Add New Asset"}</CardTitle>
-        <CardDescription>
-          {initialData
-            ? "Update your asset information below"
-            : "Add a new asset to track in your net worth"}
-        </CardDescription>
+    <Card className="w-full max-w-2xl mx-auto financial-card">
+      <CardHeader className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+            <span className="text-green-600 text-lg">💰</span>
+          </div>
+          <div>
+            <CardTitle className="heading-md">{initialData ? "Edit Asset" : "Add New Asset"}</CardTitle>
+            <CardDescription className="mt-1">
+              {initialData
+                ? "Update your asset information below"
+                : "Add a new asset to track in your net worth"}
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 form-enhanced">
             {/* 🎓 LEARNING: FormField Pattern */}
             {/* Each field follows this pattern: FormField -> FormItem -> FormLabel + FormControl + FormMessage */}
 
@@ -166,9 +173,24 @@ export function AssetForm({ onSubmit, initialData, isLoading }: AssetFormProps) 
               )}
             />
 
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? "Saving..." : (initialData ? "Update Asset" : "Add Asset")}
-            </Button>
+            <div className="pt-4">
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full btn-financial h-12 text-base font-medium"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Saving...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span>{initialData ? "💾 Update Asset" : "✨ Add Asset"}</span>
+                  </div>
+                )}
+              </Button>
+            </div>
           </form>
         </Form>
       </CardContent>

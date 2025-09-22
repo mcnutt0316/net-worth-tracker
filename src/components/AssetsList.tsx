@@ -46,16 +46,21 @@ export function AssetsList({ assets, onEdit, onDelete, onAdd, isLoading }: Asset
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="financial-card">
+      <CardHeader className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Your Assets</CardTitle>
-            <CardDescription>
-              Manage your assets and their current values
-            </CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+              <span className="text-green-600 text-lg">💰</span>
+            </div>
+            <div>
+              <CardTitle className="heading-md">Your Assets</CardTitle>
+              <CardDescription>
+                Manage your assets and their current values
+              </CardDescription>
+            </div>
           </div>
-          <Button onClick={onAdd} disabled={isLoading}>
+          <Button onClick={onAdd} disabled={isLoading} className="btn-financial">
             <Plus className="h-4 w-4 mr-2" />
             Add Asset
           </Button>
@@ -75,19 +80,20 @@ export function AssetsList({ assets, onEdit, onDelete, onAdd, isLoading }: Asset
         ) : (
           // 🎓 LEARNING: Responsive grid layout
           <div className="space-y-4">
-            {assets.map((asset) => (
+            {assets.map((asset, index) => (
               <div
                 key={asset.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-card"
+                className="flex items-center justify-between p-4 rounded-lg border bg-card hover:shadow-md transition-all duration-200 animate-slide-in-up"
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-medium">{asset.name}</h3>
-                    <span className="px-2 py-1 text-xs rounded-full bg-primary/10 text-primary">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-semibold text-lg">{asset.name}</h3>
+                    <span className="px-3 py-1 text-xs rounded-full bg-green-100 text-green-700 font-medium">
                       {asset.category}
                     </span>
                   </div>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="financial-amount-lg text-green-600">
                     {formatCurrency(asset.value)}
                   </p>
                   {asset.description && (
