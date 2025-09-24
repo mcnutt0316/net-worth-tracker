@@ -15,7 +15,7 @@ TABLE OF CONTENTS
 1. OVERVIEW & LEARNING OBJECTIVES
 ================================================================================
 
-🎯 GOAL: Integrate Plaid to automatically sync real bank account balances with your Net Worth Tracker
+🎯 GOAL: Give users the choice to either manually enter asset/liability values OR connect them to their bank accounts via Plaid for automatic syncing
 
 🧠 WHAT YOU'LL LEARN:
 - How financial APIs work (Plaid specifically)
@@ -66,26 +66,28 @@ CURRENT STATE:
 - Simple CRUD operations
 
 TARGET STATE:
-- Hybrid approach: Manual + Plaid-synced assets
-- Real-time balance updates
-- Clear visual distinction between account types
+- User choice workflow: Manual entry OR Plaid linking per asset/liability
+- Seamless integration within existing forms
+- Real-time balance updates for connected accounts
+- Clear visual indicators showing sync status
 
 🗄️ DATABASE CHANGES:
-We'll add a new table for Plaid accounts but keep your existing Asset table.
-This allows users to have both manual and Plaid-synced assets.
+We'll enhance your existing Asset and Liability tables with optional Plaid fields.
+No separate tables needed - everything stays unified with optional bank linking.
 
 📁 FILE STRUCTURE:
 src/
 ├── lib/
 │   ├── plaid.ts (✅ exists, needs enhancement)
-│   ├── plaid-accounts.ts (new - CRUD for Plaid accounts)
-│   └── plaid-sync.ts (new - balance syncing logic)
+│   ├── plaid-sync.ts (new - balance syncing logic)
+│   ├── assets.ts (enhance with Plaid functions)
+│   └── liabilities.ts (enhance with Plaid functions)
 ├── components/
-│   ├── PlaidLink.tsx (new - connection widget)
-│   └── PlaidAccountCard.tsx (new - display connected accounts)
+│   ├── PlaidLinkButton.tsx (new - embedded in forms)
+│   ├── AssetForm.tsx (enhance with Plaid choice)
+│   └── LiabilityForm.tsx (enhance with Plaid choice)
 └── app/
-    ├── actions.ts (enhance with Plaid actions)
-    └── plaid/ (new - Plaid management pages)
+    └── actions.ts (enhance with Plaid actions)
 
 ================================================================================
 4. PHASE-BY-PHASE IMPLEMENTATION PLAN
@@ -94,52 +96,28 @@ src/
 ▶️ PHASE 1: DATABASE FOUNDATION (Day 1 - 1-2 hours)
 ================================================================================
 
-🎯 Goal: Set up database to handle Plaid accounts
+🎯 Goal: Enhance existing Asset/Liability tables to support optional Plaid linking
 
 📝 WHAT WE'RE DOING:
-Adding a new table to store connected bank accounts and linking them to assets.
+Adding Plaid-related fields to your existing Asset and Liability models.
+This keeps everything unified while adding optional bank account syncing.
 
 🧠 LEARNING FOCUS:
-- Database relationships (one-to-many)
-- Migration best practices
-- Schema design for third-party integrations
+- Database schema evolution
+- Optional fields and nullable columns
+- Backwards compatibility in migrations
 
 ✅ TASKS:
-1. Create PlaidAccount model in schema.prisma
-2. Update Asset model to support Plaid linking
-3. Run migration
-4. Update TypeScript types
+1. Add Plaid fields to existing Asset and Liability models
+2. Run migration
+3. Update TypeScript types
+4. Test existing functionality still works
 
 📋 DETAILED STEPS:
 
 Step 1.1: Update prisma/schema.prisma
 ```prisma
-// Add this new model
-model PlaidAccount {
-  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  plaidAccountId   String   @unique // Plaid's account ID
-  accessToken      String   // Encrypted access token
-  institutionId    String   // Which bank (e.g., "ins_109508")
-  institutionName  String   // Human readable (e.g., "Chase")
-  accountName      String   // From bank (e.g., "Checking ****1234")
-  accountType      String   // "depository", "credit", "investment"
-  accountSubtype   String?  // "checking", "savings", "credit card"
-  mask             String?  // Last 4 digits
-  isActive         Boolean  @default(true)
-  lastSyncedAt     DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Link to user
-  userId           String   @db.Uuid
-
-  // One-to-many relationship: one Plaid account can link to multiple assets
-  assets           Asset[]  @relation("PlaidAccountAssets")
-
-  @@map("plaid_accounts")
-}
-
-// Update existing Asset model
+// Enhance existing Asset model with optional Plaid fields
 model Asset {
   id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name             String
@@ -150,49 +128,76 @@ model Asset {
   updatedAt        DateTime @updatedAt
   userId           String   @db.Uuid
 
-  // NEW: Plaid integration fields
-  plaidAccountId   String?  @db.Uuid           // Links to PlaidAccount
-  isPlaidSynced    Boolean  @default(false)    // Is this auto-synced?
+  // NEW: Optional Plaid integration fields
+  plaidAccountId   String?                     // Plaid's account ID (if linked)
+  plaidAccessToken String?                     // Access token (encrypted in production)
+  institutionName  String?                     // Bank name (e.g., "Chase")
+  isPlaidSynced    Boolean  @default(false)    // Is this auto-synced from bank?
   lastSyncedAt     DateTime?                   // When was balance last updated?
 
-  // Relationship
-  plaidAccount     PlaidAccount? @relation("PlaidAccountAssets", fields: [plaidAccountId], references: [id])
-
   @@map("assets")
+}
+
+// Enhance existing Liability model with optional Plaid fields
+model Liability {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String
+  category         String
+  value            Decimal  @db.Decimal(15, 2)
+  description      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  userId           String   @db.Uuid
+
+  // NEW: Optional Plaid integration fields
+  plaidAccountId   String?                     // Plaid's account ID (if linked)
+  plaidAccessToken String?                     // Access token (encrypted in production)
+  institutionName  String?                     // Bank name (e.g., "Chase")
+  isPlaidSynced    Boolean  @default(false)    // Is this auto-synced from bank?
+  lastSyncedAt     DateTime?                   // When was balance last updated?
+
+  @@map("liabilities")
 }
 ```
 
 🧠 WHY THIS DESIGN?
-- Separate table for Plaid accounts keeps concerns separated
-- Assets can be either manual OR Plaid-synced (flexibility)
-- We store minimal Plaid data (just what we need)
-- Boolean flags make it easy to query/filter
+- No separate tables - everything stays unified in existing Asset/Liability models
+- Optional Plaid fields mean existing manual entries are unaffected
+- Each asset/liability can be either manual OR Plaid-synced individually
+- Boolean flags make it easy to distinguish and handle different types
+- Simple migration that doesn't break existing data
 
 Step 1.2: Create and run migration
 ```bash
-npx prisma migrate dev --name add_plaid_integration
+npx prisma migrate dev --name add_plaid_fields_to_assets_liabilities
 ```
 
 Step 1.3: Update TypeScript types in src/lib/assets.ts
 ```typescript
-// Add new types for Plaid integration
-export type PlaidAccount = {
-  id: string
-  plaidAccountId: string
-  institutionName: string
-  accountName: string
-  accountType: string
-  mask: string | null
-  isActive: boolean
-  lastSyncedAt: Date | null
-}
-
-export type CreatePlaidAssetData = {
+// Enhanced types for assets with optional Plaid integration
+export type CreateAssetData = {
   name: string
   category: string
   value: number
-  plaidAccountId: string
   description?: string
+  // NEW: Optional Plaid fields
+  plaidAccountId?: string
+  plaidAccessToken?: string
+  institutionName?: string
+  isPlaidSynced?: boolean
+}
+
+export type UpdateAssetData = {
+  name?: string
+  category?: string
+  value?: number
+  description?: string
+  // NEW: Optional Plaid fields for updates
+  plaidAccountId?: string
+  plaidAccessToken?: string
+  institutionName?: string
+  isPlaidSynced?: boolean
+  lastSyncedAt?: Date
 }
 ```
 
@@ -405,26 +410,27 @@ PLAID_ENV=sandbox
 - Always encrypt access tokens in production (we'll use basic storage for now)
 - Sandbox environment lets you test without real bank accounts
 
-▶️ PHASE 3: FRONTEND PLAID LINK (Day 2-3 - 3-4 hours)
+▶️ PHASE 3: ENHANCED ASSET/LIABILITY FORMS (Day 2-3 - 3-4 hours)
 ================================================================================
 
-🎯 Goal: Build the "Connect Bank Account" user interface
+🎯 Goal: Add Plaid connection option to existing Asset and Liability forms
 
 📝 WHAT WE'RE DOING:
-Creating React components that let users connect their bank accounts using Plaid Link.
+Enhancing your existing AssetForm and LiabilityForm components to give users the choice:
+"Enter value manually" OR "Link to your bank account"
 
 🧠 LEARNING FOCUS:
-- React integration with third-party widgets
-- State management for async flows
-- Error handling in UI
-- Component composition patterns
+- Conditional form rendering
+- State management for form modes
+- Integrating third-party widgets into forms
+- User experience for choice-driven workflows
 
 ✅ TASKS:
 1. Install Plaid Link SDK
-2. Create PlaidLink component
-3. Add "Connect Account" button to dashboard
-4. Handle successful connections
-5. Create server actions for token exchange
+2. Create PlaidLinkButton component
+3. Enhance existing AssetForm with Plaid choice
+4. Enhance existing LiabilityForm with Plaid choice
+5. Handle both manual and Plaid creation flows
 
 📋 DETAILED STEPS:
 
@@ -434,7 +440,7 @@ npm install react-plaid-link
 npm install @types/react-plaid-link --save-dev
 ```
 
-Step 3.2: Create src/components/PlaidLink.tsx
+Step 3.2: Create src/components/PlaidLinkButton.tsx
 ```typescript
 'use client'
 
@@ -442,13 +448,21 @@ import { usePlaidLink } from 'react-plaid-link';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
-interface PlaidLinkProps {
+interface PlaidLinkButtonProps {
   linkToken: string | null;
   onSuccess: (public_token: string, metadata: any) => void;
   onError?: (error: any) => void;
+  buttonText?: string;
+  className?: string;
 }
 
-export function PlaidLink({ linkToken, onSuccess, onError }: PlaidLinkProps) {
+export function PlaidLinkButton({
+  linkToken,
+  onSuccess,
+  onError,
+  buttonText = "Link to Bank Account",
+  className
+}: PlaidLinkButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   // 🧠 LEARNING: usePlaidLink hook handles the complex Plaid widget
@@ -473,11 +487,13 @@ export function PlaidLink({ linkToken, onSuccess, onError }: PlaidLinkProps) {
 
   return (
     <Button
+      type="button"
       onClick={() => open()}
       disabled={!ready || !linkToken || isLoading}
-      className="w-full"
+      variant="outline"
+      className={className}
     >
-      {isLoading ? 'Connecting...' : 'Connect Bank Account'}
+      {isLoading ? 'Connecting...' : buttonText}
     </Button>
   );
 }
@@ -548,75 +564,112 @@ export async function exchangePlaidTokenAction(publicToken: string, metadata: an
 }
 ```
 
-Step 3.4: Create src/components/PlaidConnectButton.tsx
+Step 3.4: Enhance src/components/AssetForm.tsx (example enhancement)
 ```typescript
-'use client'
-
+// Add these imports
 import { useState, useEffect } from 'react';
-import { PlaidLink } from './PlaidLink';
-import { createPlaidLinkTokenAction, exchangePlaidTokenAction } from '@/app/actions';
-import { useRouter } from 'next/navigation';
-import { Button } from './ui/button';
+import { PlaidLinkButton } from './PlaidLinkButton';
+import { createPlaidLinkTokenAction } from '@/app/actions';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
-export function PlaidConnectButton() {
+// Add to your existing AssetForm component:
+export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
+  const [entryMode, setEntryMode] = useState<'manual' | 'plaid'>('manual');
   const [linkToken, setLinkToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
+  const [plaidData, setPlaidData] = useState<any>(null);
 
-  // 🧠 LEARNING: useEffect runs after component mounts
+  // Initialize link token when component mounts
   useEffect(() => {
     async function initializeLinkToken() {
       const result = await createPlaidLinkTokenAction();
       if (result.success) {
         setLinkToken(result.linkToken);
-      } else {
-        console.error('Failed to create link token:', result.error);
       }
     }
-
     initializeLinkToken();
   }, []);
 
-  const handlePlaidSuccess = async (publicToken: string, metadata: any) => {
-    setIsLoading(true);
-
-    try {
-      const result = await exchangePlaidTokenAction(publicToken, metadata);
-
-      if (result.success) {
-        // 🧠 LEARNING: Refresh the page to show new accounts
-        router.refresh();
-      } else {
-        console.error('Failed to exchange token:', result.error);
-        alert('Failed to connect account. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error in Plaid success handler:', error);
-      alert('Something went wrong. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handlePlaidSuccess = (publicToken: string, metadata: any) => {
+    // Store Plaid data for form submission
+    setPlaidData({ publicToken, metadata });
+    // Auto-fill form fields from Plaid data
+    setValue('name', `${metadata.institution.name} ${metadata.accounts[0].name}`);
+    setValue('value', 0); // Will be synced after connection
   };
-
-  const handlePlaidError = (error: any) => {
-    console.error('Plaid Link error:', error);
-    alert('Failed to connect to your bank. Please try again.');
-  };
-
-  if (!linkToken) {
-    return (
-      <Button disabled className="w-full">
-        Loading...
-      </Button>
-    );
-  }
 
   return (
-    <PlaidLink
-      linkToken={linkToken}
-      onSuccess={handlePlaidSuccess}
-      onError={handlePlaidError}
-    />
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {/* Choice between manual and Plaid */}
+      <div className="mb-6">
+        <Label className="text-base font-medium">How would you like to track this asset?</Label>
+        <RadioGroup value={entryMode} onValueChange={(value) => setEntryMode(value as 'manual' | 'plaid')} className="mt-2">
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="manual" id="manual" />
+            <Label htmlFor="manual">Enter value manually</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="plaid" id="plaid" />
+            <Label htmlFor="plaid">Link to bank account (auto-sync)</Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      {/* Existing form fields */}
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="name">Asset Name</Label>
+          <Input
+            id="name"
+            {...register('name', { required: 'Asset name is required' })}
+          />
+          {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+        </div>
+
+        {/* Conditional value input vs Plaid button */}
+        {entryMode === 'manual' ? (
+          <div>
+            <Label htmlFor="value">Value</Label>
+            <Input
+              id="value"
+              type="number"
+              step="0.01"
+              {...register('value', { required: 'Value is required' })}
+            />
+            {errors.value && <p className="text-red-500 text-sm">{errors.value.message}</p>}
+          </div>
+        ) : (
+          <div>
+            <Label>Bank Account Connection</Label>
+            {plaidData ? (
+              <div className="p-3 bg-green-50 border border-green-200 rounded">
+                <p className="text-green-700">✅ Connected to {plaidData.metadata.institution.name}</p>
+                <p className="text-sm text-green-600">Balance will be automatically synced</p>
+              </div>
+            ) : (
+              <PlaidLinkButton
+                linkToken={linkToken}
+                onSuccess={handlePlaidSuccess}
+                buttonText="Connect to Bank Account"
+                className="w-full"
+              />
+            )}
+          </div>
+        )}
+
+        {/* Rest of your existing form fields */}
+      </div>
+
+      {/* Submit button */}
+      <div className="flex gap-2 mt-6">
+        <Button type="submit" disabled={entryMode === 'plaid' && !plaidData}>
+          {entryMode === 'plaid' && !plaidData ? 'Connect Account First' : 'Create Asset'}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </form>
   );
 }
 ```
@@ -627,99 +680,98 @@ export function PlaidConnectButton() {
 - Always handle errors gracefully - banks can be finicky!
 - Link tokens expire, so we create them fresh each time
 
-▶️ PHASE 4: BALANCE SYNCING (Day 3-4 - 2-3 hours)
+▶️ PHASE 4: PLAID SYNC INTEGRATION (Day 3-4 - 2-3 hours)
 ================================================================================
 
-🎯 Goal: Automatically update asset values with real bank balances
+🎯 Goal: Handle Plaid account creation and automatic balance syncing
 
 📝 WHAT WE'RE DOING:
-Building the core functionality - fetching real balances and updating your assets.
+Building server actions to process Plaid connections from forms and sync balances
+for assets/liabilities that users chose to link to their bank accounts.
 
 🧠 LEARNING FOCUS:
-- Data synchronization patterns
-- Bulk database updates
-- Error handling for external APIs
-- Background job concepts
+- Processing Plaid tokens from form submissions
+- Creating assets/liabilities with Plaid data
+- Automatic balance syncing for connected accounts
+- Handling mixed manual and Plaid entries
 
 ✅ TASKS:
-1. Create balance syncing functions
-2. Add "Refresh Balances" functionality
-3. Update dashboard to show sync status
-4. Handle edge cases (expired tokens, etc.)
+1. Create server actions for Plaid-connected asset/liability creation
+2. Build balance syncing functions
+3. Add "Refresh Balances" functionality for connected accounts
+4. Update existing CRUD operations to handle Plaid fields
 
 📋 DETAILED STEPS:
 
 Step 4.1: Create src/lib/plaid-sync.ts
 ```typescript
 import { getAccountBalances } from './plaid';
-import { getUserPlaidAccounts, updateAssetFromPlaid } from './plaid-accounts';
-import { createAsset } from './assets';
+import { updateAsset } from './assets';
+import { updateLiability } from './liabilities';
+import { PrismaClient } from '@prisma/client';
 
-// 🧠 LEARNING: This is the heart of the integration - syncing real balances
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+const prisma = globalForPrisma.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+// 🧠 LEARNING: Sync balances for all Plaid-connected assets/liabilities
 export async function syncUserPlaidBalances(userId: string) {
   try {
-    const plaidAccounts = await getUserPlaidAccounts(userId);
+    // Get all assets and liabilities that are Plaid-synced
+    const [plaidAssets, plaidLiabilities] = await Promise.all([
+      prisma.asset.findMany({
+        where: { userId, isPlaidSynced: true, plaidAccessToken: { not: null } }
+      }),
+      prisma.liability.findMany({
+        where: { userId, isPlaidSynced: true, plaidAccessToken: { not: null } }
+      })
+    ]);
+
     const syncResults = [];
+    const allPlaidAccounts = [...plaidAssets, ...plaidLiabilities];
 
-    for (const plaidAccount of plaidAccounts) {
+    for (const account of allPlaidAccounts) {
       try {
-        // Fetch fresh balances from Plaid
-        const accounts = await getAccountBalances(plaidAccount.accessToken);
+        // Fetch fresh balance from Plaid
+        const accounts = await getAccountBalances(account.plaidAccessToken!);
+        const accountData = accounts.find(acc => acc.account_id === account.plaidAccountId);
 
-        // Find the matching account by Plaid ID
-        const accountData = accounts.find(acc => acc.account_id === plaidAccount.plaidAccountId);
-
-        if (!accountData || !accountData.balances.current) {
-          console.warn(`No balance data for account ${plaidAccount.plaidAccountId}`);
+        if (!accountData?.balances.current) {
+          console.warn(`No balance data for account ${account.plaidAccountId}`);
           continue;
         }
 
-        // 🧠 LEARNING: Check if we already have an asset for this account
-        const existingAsset = plaidAccount.assets[0]; // One account = one asset for now
+        const newValue = Math.abs(accountData.balances.current); // Use absolute value
+        const isAsset = 'assets' in prisma && await prisma.asset.findUnique({ where: { id: account.id } });
 
-        if (existingAsset) {
-          // Update existing asset
-          await updateAssetFromPlaid(existingAsset.id, accountData.balances.current);
-          syncResults.push({
-            accountId: plaidAccount.id,
-            accountName: plaidAccount.accountName,
-            success: true,
-            oldValue: Number(existingAsset.value),
-            newValue: accountData.balances.current,
+        if (isAsset) {
+          await updateAsset(account.id, {
+            value: newValue,
+            lastSyncedAt: new Date()
           });
         } else {
-          // Create new asset for this account
-          const newAsset = await createAsset(userId, {
-            name: `${plaidAccount.institutionName} ${plaidAccount.accountName}`,
-            category: getAssetCategory(plaidAccount.accountType),
-            value: accountData.balances.current,
-            description: `Auto-synced from ${plaidAccount.institutionName}`,
-          });
-
-          // Link the asset to the Plaid account
-          await prisma.asset.update({
-            where: { id: newAsset.id },
-            data: {
-              plaidAccountId: plaidAccount.id,
-              isPlaidSynced: true,
-              lastSyncedAt: new Date(),
-            }
-          });
-
-          syncResults.push({
-            accountId: plaidAccount.id,
-            accountName: plaidAccount.accountName,
-            success: true,
-            newValue: accountData.balances.current,
-            created: true,
+          await updateLiability(account.id, {
+            value: newValue,
+            lastSyncedAt: new Date()
           });
         }
 
-      } catch (accountError) {
-        console.error(`Error syncing account ${plaidAccount.id}:`, accountError);
         syncResults.push({
-          accountId: plaidAccount.id,
-          accountName: plaidAccount.accountName,
+          id: account.id,
+          name: account.name,
+          type: isAsset ? 'asset' : 'liability',
+          success: true,
+          oldValue: Number(account.value),
+          newValue,
+        });
+
+      } catch (accountError) {
+        console.error(`Error syncing account ${account.id}:`, accountError);
+        syncResults.push({
+          id: account.id,
+          name: account.name,
           success: false,
           error: accountError.message,
         });
@@ -739,47 +791,60 @@ export async function syncUserPlaidBalances(userId: string) {
 }
 
 // 🧠 LEARNING: Helper function to categorize accounts
-function getAssetCategory(accountType: string): string {
+export function getAssetCategory(accountType: string): string {
   switch (accountType) {
     case 'depository':
       return 'Cash';
     case 'investment':
     case 'brokerage':
       return 'Investments';
-    case 'credit':
-      return 'Credit'; // This might be a liability actually
     default:
       return 'Other';
   }
 }
 
-// Add this to handle individual account syncing
-export async function syncSinglePlaidAccount(plaidAccountId: string) {
-  try {
-    const plaidAccount = await prisma.plaidAccount.findUnique({
-      where: { id: plaidAccountId },
-      include: { assets: true }
-    });
+export function getLiabilityCategory(accountType: string): string {
+  switch (accountType) {
+    case 'credit':
+      return 'Credit Card';
+    case 'loan':
+      return 'Loan';
+    case 'mortgage':
+      return 'Mortgage';
+    default:
+      return 'Other';
+  }
+}
 
-    if (!plaidAccount) {
-      throw new Error('Plaid account not found');
+// Sync a single account (asset or liability)
+export async function syncSingleAccount(accountId: string, type: 'asset' | 'liability') {
+  try {
+    const account = type === 'asset'
+      ? await prisma.asset.findUnique({ where: { id: accountId } })
+      : await prisma.liability.findUnique({ where: { id: accountId } });
+
+    if (!account || !account.isPlaidSynced || !account.plaidAccessToken) {
+      throw new Error('Account not found or not Plaid-synced');
     }
 
-    const accounts = await getAccountBalances(plaidAccount.accessToken);
-    const accountData = accounts.find(acc => acc.account_id === plaidAccount.plaidAccountId);
+    const accounts = await getAccountBalances(account.plaidAccessToken);
+    const accountData = accounts.find(acc => acc.account_id === account.plaidAccountId);
 
     if (!accountData?.balances.current) {
       throw new Error('No balance data available');
     }
 
-    const existingAsset = plaidAccount.assets[0];
-    if (existingAsset) {
-      await updateAssetFromPlaid(existingAsset.id, accountData.balances.current);
+    const newValue = Math.abs(accountData.balances.current);
+
+    if (type === 'asset') {
+      await updateAsset(accountId, { value: newValue, lastSyncedAt: new Date() });
+    } else {
+      await updateLiability(accountId, { value: newValue, lastSyncedAt: new Date() });
     }
 
     return {
       success: true,
-      newBalance: accountData.balances.current,
+      newBalance: newValue,
       syncedAt: new Date(),
     };
 
@@ -790,16 +855,85 @@ export async function syncSinglePlaidAccount(plaidAccountId: string) {
 }
 ```
 
-Step 4.2: Add sync action to src/app/actions.ts
+Step 4.2: Add Plaid actions to src/app/actions.ts
 ```typescript
 import { syncUserPlaidBalances } from '@/lib/plaid-sync';
+import { exchangePublicToken, getAccounts } from '@/lib/plaid';
+import { createAsset } from '@/lib/assets';
+import { createLiability } from '@/lib/liabilities';
 
+// Create asset with Plaid connection
+export async function createPlaidAssetAction(formData: FormData, plaidData: any) {
+  try {
+    const user = await getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Exchange Plaid public token for access token
+    const { accessToken } = await exchangePublicToken(plaidData.publicToken);
+    const accountsData = await getAccounts(accessToken);
+    const accountInfo = accountsData.accounts[0]; // First selected account
+
+    // Get current balance
+    const balanceData = await getAccountBalances(accessToken);
+    const currentBalance = balanceData[0]?.balances.current || 0;
+
+    // Create asset with Plaid data
+    const asset = await createAsset(user.id, {
+      name: formData.get('name') as string,
+      category: formData.get('category') as string,
+      value: Math.abs(currentBalance),
+      description: formData.get('description') as string || `Auto-synced from ${plaidData.metadata.institution.name}`,
+      // Plaid fields
+      plaidAccountId: accountInfo.account_id,
+      plaidAccessToken: accessToken, // 🚨 Encrypt in production!
+      institutionName: plaidData.metadata.institution.name,
+      isPlaidSynced: true,
+    });
+
+    return { success: true, asset };
+  } catch (error) {
+    console.error('Error creating Plaid asset:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Similar function for liabilities
+export async function createPlaidLiabilityAction(formData: FormData, plaidData: any) {
+  try {
+    const user = await getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { accessToken } = await exchangePublicToken(plaidData.publicToken);
+    const accountsData = await getAccounts(accessToken);
+    const accountInfo = accountsData.accounts[0];
+
+    const balanceData = await getAccountBalances(accessToken);
+    const currentBalance = balanceData[0]?.balances.current || 0;
+
+    const liability = await createLiability(user.id, {
+      name: formData.get('name') as string,
+      category: formData.get('category') as string,
+      value: Math.abs(currentBalance), // Liabilities are positive values
+      description: formData.get('description') as string || `Auto-synced from ${plaidData.metadata.institution.name}`,
+      // Plaid fields
+      plaidAccountId: accountInfo.account_id,
+      plaidAccessToken: accessToken,
+      institutionName: plaidData.metadata.institution.name,
+      isPlaidSynced: true,
+    });
+
+    return { success: true, liability };
+  } catch (error) {
+    console.error('Error creating Plaid liability:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Sync all Plaid balances
 export async function syncPlaidBalancesAction() {
   try {
     const user = await getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
+    if (!user) throw new Error('User not authenticated');
 
     const result = await syncUserPlaidBalances(user.id);
     return { success: true, data: result };
@@ -874,137 +1008,154 @@ export function PlaidSyncButton({ className }: PlaidSyncButtonProps) {
 - Always handle partial failures gracefully
 - User feedback is crucial for external API calls
 
-▶️ PHASE 5: DASHBOARD INTEGRATION (Day 4-5 - 2-3 hours)
+▶️ PHASE 5: ENHANCED DASHBOARD & UI (Day 4-5 - 2-3 hours)
 ================================================================================
 
-🎯 Goal: Update your dashboard to show connected accounts and sync status
+🎯 Goal: Update dashboard and lists to show sync status for connected accounts
 
 📝 WHAT WE'RE DOING:
-Enhancing your existing dashboard to display Plaid accounts alongside manual assets.
+Enhancing your existing AssetsList and LiabilitiesList components to show which
+accounts are manually entered vs auto-synced from bank accounts.
 
 🧠 LEARNING FOCUS:
-- Conditional rendering patterns
-- State management between components
-- UI/UX for mixed data sources
-- Progressive enhancement
+- Conditional rendering for different data sources
+- Visual indicators for sync status
+- Unified UI that handles both manual and Plaid entries
+- User feedback for sync operations
 
 ✅ TASKS:
-1. Display connected Plaid accounts
-2. Show sync status and timestamps
-3. Add visual indicators for account types
-4. Update the main dashboard layout
+1. Add sync status indicators to existing asset/liability lists
+2. Show last sync timestamps for connected accounts
+3. Add "Refresh Balances" functionality
+4. Update dashboard totals to include both manual and synced values
 
 📋 DETAILED STEPS:
 
-Step 5.1: Create src/components/PlaidAccountsList.tsx
+Step 5.1: Enhance src/components/AssetsList.tsx (example enhancement)
 ```typescript
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+// Add these imports to your existing AssetsList
 import { Badge } from './ui/badge';
-import { formatCurrency } from '@/lib/calculations';
+import { Button } from './ui/button';
+import { RefreshCw, Link2, Edit3 } from 'lucide-react';
+import { syncSingleAccount } from '@/lib/plaid-sync';
+import { useState } from 'react';
 
-interface PlaidAccount {
-  id: string;
-  institutionName: string;
-  accountName: string;
-  accountType: string;
-  mask: string | null;
-  lastSyncedAt: Date | null;
-  assets: Array<{
-    id: string;
-    name: string;
-    value: number;
-    lastSyncedAt: Date | null;
-  }>;
-}
+// Enhance your existing AssetsList component:
+export function AssetsList({ assets, onEdit, onDelete }: AssetsListProps) {
+  const [syncing, setSyncing] = useState<string | null>(null);
 
-interface PlaidAccountsListProps {
-  accounts: PlaidAccount[];
-}
-
-export function PlaidAccountsList({ accounts }: PlaidAccountsListProps) {
-  if (accounts.length === 0) {
-    return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center text-muted-foreground">
-            <p>No connected bank accounts</p>
-            <p className="text-sm mt-1">Connect an account to automatically sync balances</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleSyncSingle = async (assetId: string) => {
+    setSyncing(assetId);
+    try {
+      await syncSingleAccount(assetId, 'asset');
+      // Refresh the page or update local state
+      window.location.reload(); // Simple approach
+    } catch (error) {
+      console.error('Sync failed:', error);
+      alert('Failed to sync balance. Please try again.');
+    } finally {
+      setSyncing(null);
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      {accounts.map((account) => (
-        <Card key={account.id} className="border-blue-200">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                {account.institutionName}
-              </CardTitle>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                🏦 Connected
-              </Badge>
+    <div className="space-y-3">
+      {assets.map((asset) => (
+        <div key={asset.id} className="flex items-center justify-between p-4 border rounded-lg">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-medium">{asset.name}</h3>
+
+              {/* NEW: Sync status badges */}
+              {asset.isPlaidSynced ? (
+                <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700">
+                  <Link2 className="w-3 h-3 mr-1" />
+                  {asset.institutionName}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-xs">
+                  <Edit3 className="w-3 h-3 mr-1" />
+                  Manual
+                </Badge>
+              )}
             </div>
+
             <p className="text-sm text-muted-foreground">
-              {account.accountName} {account.mask && `••••${account.mask}`}
+              {asset.category} • {formatCurrency(Number(asset.value))}
             </p>
-          </CardHeader>
-          <CardContent>
-            {account.assets.map((asset) => (
-              <div key={asset.id} className="flex items-center justify-between py-2">
-                <div>
-                  <p className="font-medium">{asset.name}</p>
-                  {asset.lastSyncedAt && (
-                    <p className="text-xs text-muted-foreground">
-                      Last synced: {new Date(asset.lastSyncedAt).toLocaleString()}
-                    </p>
-                  )}
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-green-600">
-                    {formatCurrency(Number(asset.value))}
-                  </p>
-                  <Badge variant="outline" className="text-xs">
-                    Auto-synced
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+
+            {/* NEW: Show last sync time for Plaid accounts */}
+            {asset.isPlaidSynced && asset.lastSyncedAt && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Last synced: {new Date(asset.lastSyncedAt).toLocaleString()}
+              </p>
+            )}
+
+            {asset.description && (
+              <p className="text-xs text-muted-foreground mt-1">{asset.description}</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* NEW: Sync button for Plaid accounts */}
+            {asset.isPlaidSynced && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleSyncSingle(asset.id)}
+                disabled={syncing === asset.id}
+                className="h-8 w-8 p-0"
+              >
+                <RefreshCw className={`w-4 h-4 ${syncing === asset.id ? 'animate-spin' : ''}`} />
+              </Button>
+            )}
+
+            {/* Existing edit/delete buttons - only show for manual entries */}
+            {!asset.isPlaidSynced && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit(asset)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Edit3 className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(asset.id)}
+                  className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
       ))}
     </div>
   );
 }
 ```
 
-Step 5.2: Update src/app/page.tsx to include Plaid accounts
+Step 5.2: Update src/app/page.tsx (minimal changes needed)
 ```typescript
-// Add this import
-import { getUserPlaidAccountsAction } from './actions';
-import { PlaidConnectButton } from '@/components/PlaidConnectButton';
+// Add just the sync button import
 import { PlaidSyncButton } from '@/components/PlaidSyncButton';
-import { PlaidAccountsList } from '@/components/PlaidAccountsList';
 
-// Update the data fetching section
+// Your existing page component stays mostly the same
 export default async function Home() {
   const user = await getUser();
+  if (!user) redirect("/auth");
 
-  if (!user) {
-    redirect("/auth");
-  }
-
-  // Fetch both manual and Plaid data
-  const [assets, liabilities, plaidAccounts] = await Promise.all([
+  // Existing data fetching (no changes needed)
+  const [assets, liabilities] = await Promise.all([
     getUserAssetsAction(),
-    getUserLiabilitiesAction(),
-    getUserPlaidAccountsAction(), // New function we need to create
+    getUserLiabilitiesAction()
   ]);
 
-  // Calculate totals (same as before)
+  // Calculate totals (includes both manual and Plaid-synced assets/liabilities)
   const totalAssets = calculateTotalAssets(assets);
   const totalLiabilities = calculateTotalLiabilities(liabilities);
   const netWorth = calculateNetWorth(totalAssets, totalLiabilities);
@@ -1012,7 +1163,7 @@ export default async function Home() {
   return (
     <div className="min-h-screen p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header section with sync button */}
+        {/* Header section - just add sync button */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-10">
           <div className="mb-4 sm:mb-0">
             <h1 className="heading-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -1023,7 +1174,7 @@ export default async function Home() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            {/* Add sync button */}
+            {/* NEW: Add sync button for Plaid accounts */}
             <PlaidSyncButton />
             <div className="text-right hidden sm:block">
               <p className="text-sm text-muted-foreground">Welcome back</p>
@@ -1037,58 +1188,88 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Summary cards (same as before) */}
+        {/* Summary cards (no changes - totals automatically include Plaid accounts) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 animate-fade-in">
-          {/* Your existing summary cards */}
+          {/* Your existing summary cards work perfectly */}
         </div>
 
-        {/* New section for Plaid accounts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold">Connected Accounts</h2>
-              <PlaidConnectButton />
-            </div>
-            <PlaidAccountsList accounts={plaidAccounts} />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-semibold mb-6">Manual Assets</h2>
-            {/* Your existing DashboardClient component */}
-            <DashboardClient initialAssets={assets} initialLiabilities={liabilities} />
-          </div>
-        </div>
+        {/* Your existing DashboardClient - enhanced lists will show sync status */}
+        <DashboardClient initialAssets={assets} initialLiabilities={liabilities} />
       </div>
     </div>
   );
 }
 ```
 
-Step 5.3: Add the missing server action to src/app/actions.ts
+Step 5.3: Create src/components/PlaidSyncButton.tsx (global sync button)
 ```typescript
-import { getUserPlaidAccounts } from '@/lib/plaid-accounts';
+'use client'
 
-export async function getUserPlaidAccountsAction() {
-  try {
-    const user = await getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
+import { useState } from 'react';
+import { Button } from './ui/button';
+import { syncPlaidBalancesAction } from '@/app/actions';
+import { useRouter } from 'next/navigation';
+import { RefreshCw } from 'lucide-react';
+
+interface PlaidSyncButtonProps {
+  className?: string;
+}
+
+export function PlaidSyncButton({ className }: PlaidSyncButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSyncAll = async () => {
+    setIsLoading(true);
+
+    try {
+      const result = await syncPlaidBalancesAction();
+
+      if (result.success) {
+        const { results } = result.data;
+        const successCount = results.filter(r => r.success).length;
+        const totalCount = results.length;
+
+        if (totalCount === 0) {
+          alert('No connected accounts to sync.');
+        } else {
+          alert(`Synced ${successCount} of ${totalCount} connected account(s)!`);
+        }
+
+        // Refresh to show updated balances
+        router.refresh();
+      } else {
+        alert(`Sync failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Sync error:', error);
+      alert('Failed to sync balances. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    const accounts = await getUserPlaidAccounts(user.id);
-    return accounts;
-  } catch (error) {
-    console.error('Error fetching Plaid accounts:', error);
-    return [];
-  }
+  return (
+    <Button
+      onClick={handleSyncAll}
+      disabled={isLoading}
+      variant="outline"
+      size="sm"
+      className={className}
+    >
+      <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+      {isLoading ? 'Syncing...' : 'Refresh Connected Balances'}
+    </Button>
+  );
 }
 ```
 
 🧠 LEARNING NOTES:
-- We separate "Connected" vs "Manual" assets for clarity
-- Visual indicators help users understand data sources
-- Sync timestamps show data freshness
-- Progressive enhancement: works without JS, better with JS
+- All assets/liabilities show in same lists with clear visual indicators
+- Manual entries can be edited/deleted, Plaid entries can only be synced
+- Sync timestamps show when bank data was last refreshed
+- Users get both individual sync (per account) and bulk sync (all accounts)
+- Totals automatically include both manual and Plaid-synced values
 
 ================================================================================
 5. TROUBLESHOOTING & COMMON ISSUES
@@ -1145,11 +1326,12 @@ PHASE SUMMARY & NEXT STEPS
 ================================================================================
 
 ✅ AFTER PHASE 5, YOU'LL HAVE:
-- Working Plaid Link integration
-- Real-time balance syncing
-- Mixed manual + auto-synced assets
-- Visual dashboard showing both account types
-- Proper error handling
+- User choice workflow: Manual OR Plaid linking per asset/liability
+- Enhanced Asset/Liability forms with Plaid connection option
+- Real-time balance syncing for connected accounts
+- Unified dashboard showing all accounts with clear sync indicators
+- Individual and bulk sync functionality
+- Proper error handling and user feedback
 
 🚀 FUTURE ENHANCEMENTS:
 - Automatic scheduled syncing (background jobs)
@@ -1159,11 +1341,13 @@ PHASE SUMMARY & NEXT STEPS
 - Better error recovery
 
 🎓 SKILLS YOU'VE LEARNED:
-- Third-party API integration
-- OAuth-like token flows
-- Database schema for integrations
-- React component patterns
-- State management
-- Error handling strategies
+- Third-party API integration (Plaid)
+- OAuth-like token flows (Link → Public → Access tokens)
+- Database schema evolution and optional fields
+- Conditional form rendering and user choice workflows
+- React component enhancement patterns
+- State management for mixed data sources
+- Error handling strategies for external APIs
+- User experience design for optional features
 
 Remember: Start with Phase 1 and test each phase thoroughly before moving on!
