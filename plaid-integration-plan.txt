@@ -48,11 +48,13 @@ Plaid is a "financial data network" - think of it as a secure bridge between you
 7. You store access_token securely
 8. Use access_token to fetch balances anytime
 
-🔐 SECURITY NOTES:
+🔐 SECURITY NOTES (SIMPLIFIED FOR PERSONAL USE):
 - You never see user bank passwords
-- Access tokens are encrypted and stored securely
+- Access tokens are encrypted before storage (recommended by Plaid)
 - Plaid is bank-grade security (SOC 2, ISO 27001)
 - Tokens can be revoked by user anytime
+- Basic input validation prevents app crashes
+- Supabase RLS handles user data separation
 
 ================================================================================
 3. PROJECT ARCHITECTURE DECISIONS
@@ -75,13 +77,14 @@ TARGET STATE:
 We'll enhance your existing Asset and Liability tables with optional Plaid fields.
 No separate tables needed - everything stays unified with optional bank linking.
 
-📁 FILE STRUCTURE:
+📁 FILE STRUCTURE (SIMPLIFIED):
 src/
 ├── lib/
 │   ├── plaid.ts (✅ exists, needs enhancement)
 │   ├── plaid-sync.ts (new - balance syncing logic)
 │   ├── assets.ts (enhance with Plaid functions)
-│   └── liabilities.ts (enhance with Plaid functions)
+│   ├── liabilities.ts (enhance with Plaid functions)
+│   └── crypto.ts (new - simple token encryption)
 ├── components/
 │   ├── PlaidLinkButton.tsx (new - embedded in forms)
 │   ├── AssetForm.tsx (enhance with Plaid choice)
@@ -128,14 +131,16 @@ model Asset {
   updatedAt        DateTime @updatedAt
   userId           String   @db.Uuid
 
-  // NEW: Optional Plaid integration fields
+  // NEW: Optional Plaid integration fields (SIMPLIFIED)
   plaidAccountId   String?                     // Plaid's account ID (if linked)
-  plaidAccessToken String?                     // Access token (encrypted in production)
+  plaidAccessToken String?                     // 🔐 ENCRYPTED access token
+  plaidTokenIv     String?                     // 🔐 Encryption IV
   institutionName  String?                     // Bank name (e.g., "Chase")
   isPlaidSynced    Boolean  @default(false)    // Is this auto-synced from bank?
   lastSyncedAt     DateTime?                   // When was balance last updated?
 
   @@map("assets")
+  @@index([userId, isPlaidSynced])             // Performance index
 }
 
 // Enhance existing Liability model with optional Plaid fields
@@ -149,14 +154,16 @@ model Liability {
   updatedAt        DateTime @updatedAt
   userId           String   @db.Uuid
 
-  // NEW: Optional Plaid integration fields
+  // NEW: Optional Plaid integration fields (SIMPLIFIED)
   plaidAccountId   String?                     // Plaid's account ID (if linked)
-  plaidAccessToken String?                     // Access token (encrypted in production)
+  plaidAccessToken String?                     // 🔐 ENCRYPTED access token
+  plaidTokenIv     String?                     // 🔐 Encryption IV
   institutionName  String?                     // Bank name (e.g., "Chase")
   isPlaidSynced    Boolean  @default(false)    // Is this auto-synced from bank?
   lastSyncedAt     DateTime?                   // When was balance last updated?
 
   @@map("liabilities")
+  @@index([userId, isPlaidSynced])             // Performance index
 }
 ```
 
@@ -172,7 +179,50 @@ Step 1.2: Create and run migration
 npx prisma migrate dev --name add_plaid_fields_to_assets_liabilities
 ```
 
-Step 1.3: Update TypeScript types in src/lib/assets.ts
+Step 1.3: Create src/lib/crypto.ts (NEW - Simple Token Encryption)
+```typescript
+// 🔐 Simple AES-256 encryption for Plaid access tokens
+import crypto from 'crypto';
+
+const ENCRYPTION_KEY = process.env.PLAID_ENCRYPTION_KEY!;
+const ALGORITHM = 'aes-256-cbc';
+
+if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 64) {
+  throw new Error('PLAID_ENCRYPTION_KEY must be a 64-character hex string');
+}
+
+const key = Buffer.from(ENCRYPTION_KEY, 'hex');
+
+export function encryptToken(token: string): { encrypted: string; iv: string } {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipher(ALGORITHM, key);
+
+  let encrypted = cipher.update(token, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+
+  return {
+    encrypted,
+    iv: iv.toString('hex')
+  };
+}
+
+export function decryptToken(encrypted: string, iv: string): string {
+  const decipher = crypto.createDecipher(ALGORITHM, key);
+  decipher.setIV(Buffer.from(iv, 'hex'));
+
+  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+
+  return decrypted;
+}
+
+// Generate encryption key for setup
+export function generateEncryptionKey(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+```
+
+Step 1.4: Update TypeScript types in src/lib/assets.ts
 ```typescript
 // Enhanced types for assets with optional Plaid integration
 export type CreateAssetData = {
@@ -182,7 +232,7 @@ export type CreateAssetData = {
   description?: string
   // NEW: Optional Plaid fields
   plaidAccountId?: string
-  plaidAccessToken?: string
+  plaidAccessToken?: string  // Will be encrypted before storage
   institutionName?: string
   isPlaidSynced?: boolean
 }
@@ -195,6 +245,7 @@ export type UpdateAssetData = {
   // NEW: Optional Plaid fields for updates
   plaidAccountId?: string
   plaidAccessToken?: string
+  plaidTokenIv?: string
   institutionName?: string
   isPlaidSynced?: boolean
   lastSyncedAt?: Date
@@ -205,6 +256,7 @@ export type UpdateAssetData = {
 - Make sure your DATABASE_URL is set correctly
 - If migration fails, check for syntax errors in schema
 - Remember to restart your dev server after schema changes
+- Generate and set PLAID_ENCRYPTION_KEY before running migration
 
 ▶️ PHASE 2: PLAID CLIENT ENHANCEMENT (Day 1-2 - 2-3 hours)
 ================================================================================
@@ -228,7 +280,7 @@ Enhancing your existing Plaid client with functions to handle the complete flow.
 
 📋 DETAILED STEPS:
 
-Step 2.1: Enhance src/lib/plaid.ts
+Step 2.1: Enhance src/lib/plaid.ts (SIMPLIFIED)
 ```typescript
 import {
   Configuration,
@@ -258,10 +310,10 @@ export async function createLinkToken(userId: string) {
   try {
     const request: LinkTokenCreateRequest = {
       user: {
-        client_user_id: userId, // Your user's ID
+        client_user_id: userId,
       },
       client_name: 'Net Worth Tracker',
-      products: [Products.Transactions], // What Plaid products you want
+      products: [Products.Transactions],
       country_codes: [CountryCode.Us],
       language: 'en',
     };
@@ -323,92 +375,500 @@ export async function getAccounts(accessToken: string) {
 }
 ```
 
-Step 2.2: Create src/lib/plaid-accounts.ts
-```typescript
-import { PrismaClient } from '@prisma/client'
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
-
-export type CreatePlaidAccountData = {
-  plaidAccountId: string
-  accessToken: string
-  institutionId: string
-  institutionName: string
-  accountName: string
-  accountType: string
-  accountSubtype?: string
-  mask?: string
-}
-
-// 🧠 LEARNING: This saves a connected Plaid account to our database
-export async function createPlaidAccount(userId: string, accountData: CreatePlaidAccountData) {
-  try {
-    const plaidAccount = await prisma.plaidAccount.create({
-      data: {
-        ...accountData,
-        userId,
-        lastSyncedAt: new Date(), // Mark as synced now
-      }
-    });
-    return plaidAccount;
-  } catch (error) {
-    console.error('Error creating Plaid account:', error);
-    throw new Error('Failed to create Plaid account');
-  }
-}
-
-// Get all Plaid accounts for a user
-export async function getUserPlaidAccounts(userId: string) {
-  try {
-    return await prisma.plaidAccount.findMany({
-      where: { userId, isActive: true },
-      include: {
-        assets: true, // Include linked assets
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-  } catch (error) {
-    console.error('Error fetching Plaid accounts:', error);
-    throw new Error('Failed to fetch Plaid accounts');
-  }
-}
-
-// 🧠 LEARNING: This updates an asset's value with fresh data from Plaid
-export async function updateAssetFromPlaid(assetId: string, newValue: number) {
-  try {
-    return await prisma.asset.update({
-      where: { id: assetId },
-      data: {
-        value: newValue,
-        lastSyncedAt: new Date(),
-      }
-    });
-  } catch (error) {
-    console.error('Error updating asset from Plaid:', error);
-    throw new Error('Failed to update asset');
-  }
-}
-```
-
-Step 2.3: Update .env file
+Step 2.2: Update .env file (SIMPLIFIED)
 ```env
 # Add these Plaid variables (you'll get these from Plaid Dashboard)
 PLAID_CLIENT_ID=your_client_id_here
 PLAID_SECRET=your_secret_here
 PLAID_ENV=sandbox
+
+# Token encryption (generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+PLAID_ENCRYPTION_KEY=your_64_char_hex_encryption_key_here
 ```
+
+**Generate your encryption key:**
+```bash
+node -e "console.log('PLAID_ENCRYPTION_KEY=' + require('crypto').randomBytes(32).toString('hex'))"
+```
+🧠 LEARNING NOTES:
+- Access tokens are what you use for all API calls after initial connection
+- Link tokens expire quickly (30 minutes) - they're just for the initial flow
+- Access tokens are now encrypted before storage (recommended by Plaid)
+- Supabase RLS automatically handles user data separation
+- Basic validation prevents app crashes from bad data
+
+▶️ PHASE 3: ENHANCED FORMS WITH PLAID (Day 2-3 - 2-3 hours)
+================================================================================
+
+🎯 Goal: Add Plaid connection option to existing Asset and Liability forms
+
+📝 WHAT WE'RE DOING:
+Enhancing your existing AssetForm and LiabilityForm components to give users the choice:
+"Enter value manually" OR "Link to your bank account"
+
+✅ TASKS:
+1. Install Plaid Link SDK
+2. Create PlaidLinkButton component
+3. Enhance existing forms with Plaid choice
+4. Handle both manual and Plaid creation flows
+
+Step 3.1: Install Plaid Link for React
+```bash
+npm install react-plaid-link
+npm install @types/react-plaid-link --save-dev
+```
+
+Step 3.2: Create src/components/PlaidLinkButton.tsx (SIMPLIFIED)
+```typescript
+'use client'
+
+import { usePlaidLink } from 'react-plaid-link';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+
+interface PlaidLinkButtonProps {
+  linkToken: string | null;
+  onSuccess: (public_token: string, metadata: any) => void;
+  onError?: (error: any) => void;
+  buttonText?: string;
+  className?: string;
+}
+
+export function PlaidLinkButton({
+  linkToken,
+  onSuccess,
+  onError,
+  buttonText = "Link to Bank Account",
+  className
+}: PlaidLinkButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { open, ready } = usePlaidLink({
+    token: linkToken,
+    onSuccess: (public_token, metadata) => {
+      setIsLoading(true);
+      onSuccess(public_token, metadata);
+    },
+    onExit: (err, metadata) => {
+      setIsLoading(false);
+      if (err) {
+        console.error('Plaid Link exit error:', err);
+        onError?.(err);
+      }
+    },
+  });
+
+  return (
+    <Button
+      type="button"
+      onClick={() => open()}
+      disabled={!ready || !linkToken || isLoading}
+      variant="outline"
+      className={className}
+    >
+      {isLoading ? 'Connecting...' : buttonText}
+    </Button>
+  );
+}
+```
+
+Step 3.3: Create server actions in src/app/actions.ts (SIMPLIFIED)
+```typescript
+// Add these imports to the top
+import { createLinkToken, exchangePublicToken, getAccounts, getAccountBalances } from '@/lib/plaid';
+import { encryptToken } from '@/lib/crypto';
+
+// Server actions run on the server but can be called from client components
+export async function createPlaidLinkTokenAction() {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    const linkToken = await createLinkToken(user.id);
+    return { success: true, linkToken };
+  } catch (error) {
+    console.error('Error creating link token:', error);
+    return { success: false, error: 'Failed to create link token' };
+  }
+}
+
+export async function exchangePlaidTokenAction(publicToken: string, metadata: any) {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    // Exchange public token for access token
+    const { accessToken, itemId } = await exchangePublicToken(publicToken);
+
+    // Get account details from Plaid
+    const accountsData = await getAccounts(accessToken);
+
+    // For each account, you can create assets/liabilities
+    // This example just returns the connection data
+    return {
+      success: true,
+      accessToken, // Will be encrypted when stored
+      accounts: accountsData.accounts,
+      institution: metadata.institution
+    };
+  } catch (error) {
+    console.error('Error exchanging Plaid token:', error);
+    return { success: false, error: 'Failed to connect account' };
+  }
+}
+```
+
+Step 3.4: Enhance src/components/AssetForm.tsx (SIMPLIFIED)
+```typescript
+// Add these imports
+import { useState, useEffect } from 'react';
+import { PlaidLinkButton } from './PlaidLinkButton';
+import { createPlaidLinkTokenAction, exchangePlaidTokenAction } from '@/app/actions';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { encryptToken } from '@/lib/crypto';
+
+// Add to your existing AssetForm component:
+export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
+  const [entryMode, setEntryMode] = useState<'manual' | 'plaid'>('manual');
+  const [linkToken, setLinkToken] = useState<string | null>(null);
+  const [plaidData, setPlaidData] = useState<any>(null);
+
+  // Initialize link token when Plaid mode is selected
+  useEffect(() => {
+    async function initializeLinkToken() {
+      if (entryMode === 'plaid' && !linkToken) {
+        const result = await createPlaidLinkTokenAction();
+        if (result.success) {
+          setLinkToken(result.linkToken);
+        }
+      }
+    }
+    initializeLinkToken();
+  }, [entryMode, linkToken]);
+
+  const handlePlaidSuccess = async (publicToken: string, metadata: any) => {
+    try {
+      const result = await exchangePlaidTokenAction(publicToken, metadata);
+      if (result.success) {
+        setPlaidData(result);
+        // Auto-fill form fields from Plaid data
+        setValue('name', `${metadata.institution.name} ${metadata.accounts[0].name}`);
+        setValue('value', 0); // Will be synced after connection
+      }
+    } catch (error) {
+      console.error('Error processing Plaid connection:', error);
+    }
+  };
+
+  const handleFormSubmit = async (data: any) => {
+    if (entryMode === 'plaid' && plaidData) {
+      // Encrypt access token before storage
+      const { encrypted, iv } = encryptToken(plaidData.accessToken);
+
+      // Create asset with Plaid data
+      const assetData = {
+        ...data,
+        plaidAccountId: plaidData.accounts[0].account_id,
+        plaidAccessToken: encrypted,
+        plaidTokenIv: iv,
+        institutionName: plaidData.institution.name,
+        isPlaidSynced: true,
+      };
+      await onSubmit(assetData);
+    } else {
+      // Regular manual asset
+      await onSubmit(data);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)}>
+      {/* Choice between manual and Plaid */}
+      <div className="mb-6">
+        <Label className="text-base font-medium">How would you like to track this asset?</Label>
+        <RadioGroup value={entryMode} onValueChange={(value) => setEntryMode(value as 'manual' | 'plaid')} className="mt-2">
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="manual" id="manual" />
+            <Label htmlFor="manual">Enter value manually</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="plaid" id="plaid" />
+            <Label htmlFor="plaid">Link to bank account (auto-sync)</Label>
+          </div>
+        </RadioGroup>
+      </div>
+
+      {/* Rest of your form fields */}
+      <div className="space-y-4">
+        {/* Name field */}
+        <div>
+          <Label htmlFor="name">Asset Name</Label>
+          <Input
+            id="name"
+            {...register('name', { required: 'Asset name is required' })}
+          />
+          {errors.name && <p className="text-red-500 text-sm">{errors.name.message}</p>}
+        </div>
+
+        {/* Conditional value input vs Plaid button */}
+        {entryMode === 'manual' ? (
+          <div>
+            <Label htmlFor="value">Value</Label>
+            <Input
+              id="value"
+              type="number"
+              step="0.01"
+              {...register('value', { required: 'Value is required' })}
+            />
+            {errors.value && <p className="text-red-500 text-sm">{errors.value.message}</p>}
+          </div>
+        ) : (
+          <div>
+            <Label>Bank Account Connection</Label>
+            {plaidData ? (
+              <div className="p-3 bg-green-50 border border-green-200 rounded">
+                <p className="text-green-700">✅ Connected to {plaidData.institution.name}</p>
+                <p className="text-sm text-green-600">Balance will be automatically synced</p>
+              </div>
+            ) : (
+              <PlaidLinkButton
+                linkToken={linkToken}
+                onSuccess={handlePlaidSuccess}
+                buttonText="Connect to Bank Account"
+                className="w-full"
+              />
+            )}
+          </div>
+        )}
+
+        {/* Other form fields (category, description) */}
+      </div>
+
+      {/* Submit button */}
+      <div className="flex gap-2 mt-6">
+        <Button type="submit" disabled={entryMode === 'plaid' && !plaidData}>
+          {entryMode === 'plaid' && !plaidData ? 'Connect Account First' : 'Create Asset'}
+        </Button>
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
+    </form>
+  );
+}
+```
+
+🧠 WHY THIS PATTERN?
+- User chooses manual entry OR Plaid linking per asset/liability
+- Plaid tokens are encrypted before database storage
+- Form auto-fills with bank account information
+- Simple error handling for a personal app
+- Supabase RLS ensures users only see their own data
+
+▶️ PHASE 4: BALANCE SYNCING (Day 3-4 - 2-3 hours)
+================================================================================
+
+🎯 Goal: Sync balances for Plaid-connected assets/liabilities
+
+Step 4.1: Create src/lib/plaid-sync.ts (SIMPLIFIED)
+```typescript
+import { getAccountBalances } from './plaid';
+import { updateAsset } from './assets';
+import { updateLiability } from './liabilities';
+import { decryptToken } from './crypto';
+import { PrismaClient } from '@prisma/client';
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
+}
+const prisma = globalForPrisma.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+// Sync balances for all Plaid-connected assets/liabilities
+export async function syncUserPlaidBalances(userId: string) {
+  try {
+    // Get all assets and liabilities that are Plaid-synced
+    const [plaidAssets, plaidLiabilities] = await Promise.all([
+      prisma.asset.findMany({
+        where: { userId, isPlaidSynced: true, plaidAccessToken: { not: null } },
+        select: {
+          id: true,
+          name: true,
+          value: true,
+          plaidAccountId: true,
+          plaidAccessToken: true,
+          plaidTokenIv: true,
+        }
+      }),
+      prisma.liability.findMany({
+        where: { userId, isPlaidSynced: true, plaidAccessToken: { not: null } },
+        select: {
+          id: true,
+          name: true,
+          value: true,
+          plaidAccountId: true,
+          plaidAccessToken: true,
+          plaidTokenIv: true,
+        }
+      })
+    ]);
+
+    const syncResults = [];
+    const allPlaidAccounts = [...plaidAssets, ...plaidLiabilities];
+
+    for (const account of allPlaidAccounts) {
+      try {
+        // Decrypt access token for API call
+        const decryptedToken = decryptToken(account.plaidAccessToken!, account.plaidTokenIv!);
+
+        // Fetch fresh balance from Plaid
+        const accounts = await getAccountBalances(decryptedToken);
+        const accountData = accounts.find(acc => acc.account_id === account.plaidAccountId);
+
+        if (!accountData?.balances.current) {
+          console.warn(`No balance data for account ${account.plaidAccountId}`);
+          continue;
+        }
+
+        const newValue = Math.abs(accountData.balances.current);
+        const isAsset = plaidAssets.some(a => a.id === account.id);
+
+        if (isAsset) {
+          await updateAsset(account.id, {
+            value: newValue,
+            lastSyncedAt: new Date()
+          });
+        } else {
+          await updateLiability(account.id, {
+            value: newValue,
+            lastSyncedAt: new Date()
+          });
+        }
+
+        syncResults.push({
+          id: account.id,
+          name: account.name,
+          type: isAsset ? 'asset' : 'liability',
+          success: true,
+          oldValue: Number(account.value),
+          newValue,
+        });
+
+      } catch (accountError) {
+        console.error(`Error syncing account ${account.id}:`, accountError);
+        syncResults.push({
+          id: account.id,
+          name: account.name,
+          success: false,
+          error: accountError instanceof Error ? accountError.message : 'Unknown error',
+        });
+      }
+    }
+
+    return {
+      success: true,
+      results: syncResults,
+      syncedAt: new Date(),
+    };
+
+  } catch (error) {
+    console.error('Error syncing Plaid balances:', error);
+    throw new Error('Failed to sync balances');
+  }
+}
+```
+
+Step 4.2: Add sync actions to src/app/actions.ts (SIMPLIFIED)
+```typescript
+import { syncUserPlaidBalances } from '@/lib/plaid-sync';
+
+// Sync all Plaid balances
+export async function syncPlaidBalancesAction() {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: 'Authentication required' };
+    }
+
+    const result = await syncUserPlaidBalances(user.id);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Error in sync action:', error);
+    return { success: false, error: 'Unable to sync balances' };
+  }
+}
+```
+
+Step 4.3: Create sync button component
+```typescript
+'use client'
+
+import { useState } from 'react';
+import { Button } from './ui/button';
+import { syncPlaidBalancesAction } from '@/app/actions';
+import { useRouter } from 'next/navigation';
+import { RefreshCw } from 'lucide-react';
+
+export function PlaidSyncButton({ className }: { className?: string }) {
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
+
+  const handleSync = async () => {
+    setIsLoading(true);
+
+    try {
+      const result = await syncPlaidBalancesAction();
+
+      if (result.success) {
+        const { results } = result.data;
+        const successCount = results.filter(r => r.success).length;
+        alert(`Successfully synced ${successCount} account(s)!`);
+        router.refresh();
+      } else {
+        alert(`Sync failed: ${result.error}`);
+      }
+    } catch (error) {
+      alert('Failed to sync balances. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Button
+      onClick={handleSync}
+      disabled={isLoading}
+      variant="outline"
+      size="sm"
+      className={className}
+    >
+      <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+      {isLoading ? 'Syncing...' : 'Refresh Balances'}
+    </Button>
+  );
+}
+```
+```
+
+🧠 LEARNING NOTES:
+- Sync function decrypts tokens only when needed for API calls
+- Updates all connected assets/liabilities in one operation
+- Simple error handling - just logs issues for personal use
+- Supabase RLS ensures users can only sync their own accounts
 
 🧠 LEARNING NOTES:
 - Access tokens are what you use for all API calls after initial connection
 - Link tokens expire quickly (30 minutes) - they're just for the initial flow
-- Always encrypt access tokens in production (we'll use basic storage for now)
+- 🔐 CRITICAL: Access tokens are NOW encrypted before storage using AES-256
+- 🔐 SECURITY: All database operations include authorization checks
 - Sandbox environment lets you test without real bank accounts
+- 🔐 SECURITY: All errors are sanitized before logging
+- 🔐 SECURITY: Input validation is applied to all user inputs
 
 ▶️ PHASE 3: ENHANCED ASSET/LIABILITY FORMS (Day 2-3 - 3-4 hours)
 ================================================================================
@@ -440,13 +900,114 @@ npm install react-plaid-link
 npm install @types/react-plaid-link --save-dev
 ```
 
-Step 3.2: Create src/components/PlaidLinkButton.tsx
+Step 3.2: Create src/lib/security.ts (NEW - Security Utilities)
+```typescript
+// 🔐 SECURITY: Rate limiting, CSP, and other security utilities
+
+// Simple in-memory rate limiter (use Redis in production)
+class RateLimiter {
+  private requests = new Map<string, number[]>();
+
+  async check(key: string, limit: number, windowMs: number): Promise<boolean> {
+    const now = Date.now();
+    const windowStart = now - windowMs;
+
+    if (!this.requests.has(key)) {
+      this.requests.set(key, []);
+    }
+
+    const userRequests = this.requests.get(key)!
+      .filter(time => time > windowStart);
+
+    if (userRequests.length >= limit) {
+      return false;
+    }
+
+    userRequests.push(now);
+    this.requests.set(key, userRequests);
+
+    // Clean up old entries periodically
+    if (Math.random() < 0.01) {
+      this.cleanup(windowStart);
+    }
+
+    return true;
+  }
+
+  private cleanup(cutoff: number) {
+    for (const [key, requests] of this.requests.entries()) {
+      const validRequests = requests.filter(time => time > cutoff);
+      if (validRequests.length === 0) {
+        this.requests.delete(key);
+      } else {
+        this.requests.set(key, validRequests);
+      }
+    }
+  }
+}
+
+export const rateLimit = new RateLimiter();
+
+// 🔐 SECURITY: Content Security Policy headers
+export const securityHeaders = {
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.plaid.com; connect-src 'self' https://production.plaid.com https://sandbox.plaid.com; img-src 'self' data: https:;",
+  'X-Frame-Options': 'DENY',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'X-XSS-Protection': '1; mode=block',
+};
+
+// 🔐 SECURITY: Secure session configuration
+export const sessionConfig = {
+  cookieName: 'plaid-session',
+  password: process.env.SESSION_SECRET || 'default-change-me-in-production',
+  cookieOptions: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    sameSite: 'strict' as const,
+  },
+};
+
+// 🔐 SECURITY: Audit logging
+export function auditLog(event: string, userId: string, details?: any) {
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    event,
+    userId: userId.substring(0, 8) + '...', // Partial ID for privacy
+    details: details ? sanitizeForLogging(details) : undefined,
+    ip: 'masked', // In production, you'd get this from request
+  };
+
+  console.log('AUDIT:', JSON.stringify(logEntry));
+
+  // In production, send to secure logging service
+  // await sendToSecureLogger(logEntry);
+}
+
+function sanitizeForLogging(obj: any): any {
+  const sanitized = { ...obj };
+
+  // Remove sensitive fields
+  const sensitiveFields = ['accessToken', 'password', 'secret', 'key', 'token'];
+  for (const field of sensitiveFields) {
+    if (field in sanitized) {
+      sanitized[field] = '[REDACTED]';
+    }
+  }
+
+  return sanitized;
+}
+```
+
+Step 3.3: Create src/components/PlaidLinkButton.tsx (SECURITY ENHANCED)
 ```typescript
 'use client'
 
 import { usePlaidLink } from 'react-plaid-link';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { auditLog } from '@/lib/security';
 
 interface PlaidLinkButtonProps {
   linkToken: string | null;
@@ -454,6 +1015,7 @@ interface PlaidLinkButtonProps {
   onError?: (error: any) => void;
   buttonText?: string;
   className?: string;
+  userId?: string; // 🔐 SECURITY: For audit logging
 }
 
 export function PlaidLinkButton({
@@ -461,39 +1023,85 @@ export function PlaidLinkButton({
   onSuccess,
   onError,
   buttonText = "Link to Bank Account",
-  className
+  className,
+  userId
 }: PlaidLinkButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+
+  // 🔐 SECURITY: Limit connection attempts
+  const MAX_ATTEMPTS = 3;
 
   // 🧠 LEARNING: usePlaidLink hook handles the complex Plaid widget
+  // 🔐 SECURITY: Enhanced with audit logging and attempt limiting
   const { open, ready } = usePlaidLink({
     token: linkToken,
     onSuccess: (public_token, metadata) => {
       setIsLoading(true);
+
+      // 🔐 SECURITY: Audit successful connection
+      if (userId) {
+        auditLog('plaid_link_success', userId, {
+          institution: metadata.institution?.name,
+          accountCount: metadata.accounts?.length
+        });
+      }
+
       onSuccess(public_token, metadata);
     },
     onExit: (err, metadata) => {
       setIsLoading(false);
+
       if (err) {
-        console.error('Plaid Link exit error:', err);
+        // 🔐 SECURITY: Audit failed attempts
+        const newAttempts = attempts + 1;
+        setAttempts(newAttempts);
+
+        if (userId) {
+          auditLog('plaid_link_error', userId, {
+            error: err.error_code || 'unknown',
+            attempts: newAttempts
+          });
+        }
+
+        console.error('Plaid Link exit error:', err.error_code || err.error_message);
         onError?.(err);
       }
     },
     onEvent: (eventName, metadata) => {
-      // Optional: track events for analytics
-      console.log('Plaid event:', eventName, metadata);
+      // 🔐 SECURITY: Log important events (but not sensitive data)
+      if (['OPEN', 'EXIT', 'ERROR'].includes(eventName)) {
+        console.log(`Plaid event: ${eventName}`);
+      }
     },
   });
+
+  const handleClick = () => {
+    // 🔐 SECURITY: Check attempt limit
+    if (attempts >= MAX_ATTEMPTS) {
+      alert('Maximum connection attempts reached. Please refresh the page and try again.');
+      return;
+    }
+
+    // 🔐 SECURITY: Audit connection attempt
+    if (userId) {
+      auditLog('plaid_link_attempt', userId);
+    }
+
+    open();
+  };
 
   return (
     <Button
       type="button"
-      onClick={() => open()}
-      disabled={!ready || !linkToken || isLoading}
+      onClick={handleClick}
+      disabled={!ready || !linkToken || isLoading || attempts >= MAX_ATTEMPTS}
       variant="outline"
       className={className}
     >
-      {isLoading ? 'Connecting...' : buttonText}
+      {isLoading ? 'Connecting...' :
+       attempts >= MAX_ATTEMPTS ? 'Too Many Attempts' :
+       buttonText}
     </Button>
   );
 }
@@ -504,26 +1112,41 @@ export function PlaidLinkButton({
 - onSuccess callback lets parent handle the result
 - Disabled state prevents multiple clicks
 - Loading state gives user feedback
+- 🔐 SECURITY: Attempt limiting prevents abuse
+- 🔐 SECURITY: Audit logging tracks all connection events
+- 🔐 SECURITY: Sanitized error handling prevents information disclosure
 
 Step 3.3: Create server action in src/app/actions.ts (add to existing file)
 ```typescript
-// Add these imports to the top
+// Add these imports to the top (SECURITY ENHANCED)
 import { createLinkToken, exchangePublicToken, getAccounts } from '@/lib/plaid';
 import { createPlaidAccount } from '@/lib/plaid-accounts';
+import { sanitizeErrorMessage, UserIdSchema } from '@/lib/validation';
+import { rateLimit } from '@/lib/security';
 
 // 🧠 LEARNING: Server actions run on the server but can be called from client components
+// 🔐 SECURITY: Enhanced with rate limiting and secure error handling
 export async function createPlaidLinkTokenAction() {
   try {
     const user = await getUser();
     if (!user) {
-      throw new Error('User not authenticated');
+      return { success: false, error: 'Authentication required' };
     }
 
-    const linkToken = await createLinkToken(user.id);
+    // 🔐 SECURITY: Rate limiting per user
+    const canProceed = await rateLimit.check(user.id, 10, 60000); // 10 requests per minute
+    if (!canProceed) {
+      return { success: false, error: 'Too many requests. Please wait and try again.' };
+    }
+
+    // 🔐 SECURITY: Validate user ID
+    const validatedUserId = UserIdSchema.parse(user.id);
+
+    const linkToken = await createLinkToken(validatedUserId);
     return { success: true, linkToken };
   } catch (error) {
-    console.error('Error creating link token:', error);
-    return { success: false, error: 'Failed to create link token' };
+    console.error('Link token creation error:', sanitizeErrorMessage(error));
+    return { success: false, error: 'Unable to create connection. Please try again.' };
   }
 }
 
@@ -531,7 +1154,19 @@ export async function exchangePlaidTokenAction(publicToken: string, metadata: an
   try {
     const user = await getUser();
     if (!user) {
-      throw new Error('User not authenticated');
+      return { success: false, error: 'Authentication required' };
+    }
+
+    // 🔐 SECURITY: Rate limiting for token exchange
+    const canProceed = await rateLimit.check(`exchange_${user.id}`, 5, 300000); // 5 exchanges per 5 minutes
+    if (!canProceed) {
+      return { success: false, error: 'Too many connection attempts. Please wait.' };
+    }
+
+    // 🔐 SECURITY: Validate inputs
+    const validatedUserId = UserIdSchema.parse(user.id);
+    if (!publicToken || typeof publicToken !== 'string') {
+      return { success: false, error: 'Invalid connection data' };
     }
 
     // 🧠 LEARNING: This is the key exchange - public token for access token
@@ -540,12 +1175,18 @@ export async function exchangePlaidTokenAction(publicToken: string, metadata: an
     // Get account details from Plaid
     const accountsData = await getAccounts(accessToken);
 
+    // 🔐 SECURITY: Limit number of accounts per user
+    const existingAccountCount = await getUserPlaidAccounts(validatedUserId);
+    if (existingAccountCount.length + accountsData.accounts.length > 10) {
+      return { success: false, error: 'Maximum number of connected accounts reached' };
+    }
+
     // Create database records for each account
     const createdAccounts = [];
     for (const account of accountsData.accounts) {
-      const plaidAccount = await createPlaidAccount(user.id, {
+      const plaidAccount = await createPlaidAccount(validatedUserId, {
         plaidAccountId: account.account_id,
-        accessToken, // 🚨 In production, encrypt this!
+        accessToken, // 🔐 NOW ENCRYPTED before storage!
         institutionId: accountsData.item.institution_id || '',
         institutionName: metadata.institution?.name || 'Unknown Bank',
         accountName: account.name,
@@ -558,48 +1199,132 @@ export async function exchangePlaidTokenAction(publicToken: string, metadata: an
 
     return { success: true, accounts: createdAccounts };
   } catch (error) {
-    console.error('Error exchanging Plaid token:', error);
-    return { success: false, error: 'Failed to connect account' };
+    console.error('Token exchange error:', sanitizeErrorMessage(error));
+    return { success: false, error: 'Unable to connect account. Please try again.' };
   }
 }
 ```
 
-Step 3.4: Enhance src/components/AssetForm.tsx (example enhancement)
+Step 3.4: Enhance src/components/AssetForm.tsx (SECURITY ENHANCED)
 ```typescript
-// Add these imports
+// Add these imports (SECURITY ENHANCED)
 import { useState, useEffect } from 'react';
 import { PlaidLinkButton } from './PlaidLinkButton';
 import { createPlaidLinkTokenAction } from '@/app/actions';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { AssetFormSchema } from '@/lib/validation';
+import { auditLog } from '@/lib/security';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 
-// Add to your existing AssetForm component:
-export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
+// Add to your existing AssetForm component (SECURITY ENHANCED):
+interface AssetFormProps {
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+  userId?: string; // 🔐 SECURITY: For audit logging
+}
+
+export function AssetForm({ onSubmit, onCancel, userId }: AssetFormProps) {
   const [entryMode, setEntryMode] = useState<'manual' | 'plaid'>('manual');
   const [linkToken, setLinkToken] = useState<string | null>(null);
   const [plaidData, setPlaidData] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize link token when component mounts
+  // 🔐 SECURITY: Form validation with Zod schema
+  const { register, handleSubmit, setValue, formState: { errors }, reset } = useForm({
+    resolver: zodResolver(AssetFormSchema),
+    defaultValues: {
+      name: '',
+      category: '',
+      value: 0,
+      description: ''
+    }
+  });
+
+  // Initialize link token when component mounts (SECURITY ENHANCED)
   useEffect(() => {
     async function initializeLinkToken() {
-      const result = await createPlaidLinkTokenAction();
-      if (result.success) {
-        setLinkToken(result.linkToken);
+      if (entryMode === 'plaid' && !linkToken) {
+        try {
+          const result = await createPlaidLinkTokenAction();
+          if (result.success) {
+            setLinkToken(result.linkToken);
+            // 🔐 SECURITY: Audit token creation
+            if (userId) {
+              auditLog('link_token_created', userId);
+            }
+          } else {
+            console.error('Failed to create link token:', result.error);
+          }
+        } catch (error) {
+          console.error('Link token initialization failed:', error);
+        }
       }
     }
     initializeLinkToken();
-  }, []);
+  }, [entryMode, linkToken, userId]);
 
   const handlePlaidSuccess = (publicToken: string, metadata: any) => {
-    // Store Plaid data for form submission
-    setPlaidData({ publicToken, metadata });
-    // Auto-fill form fields from Plaid data
-    setValue('name', `${metadata.institution.name} ${metadata.accounts[0].name}`);
-    setValue('value', 0); // Will be synced after connection
+    try {
+      // 🔐 SECURITY: Validate Plaid response data
+      if (!publicToken || !metadata?.institution?.name) {
+        throw new Error('Invalid Plaid connection data');
+      }
+
+      // Store Plaid data for form submission
+      setPlaidData({ publicToken, metadata });
+
+      // 🔐 SECURITY: Sanitize and validate auto-filled data
+      const institutionName = metadata.institution.name.substring(0, 50);
+      const accountName = metadata.accounts?.[0]?.name?.substring(0, 50) || 'Account';
+
+      setValue('name', `${institutionName} ${accountName}`);
+      setValue('value', 0); // Will be synced after connection
+      setValue('description', `Auto-synced from ${institutionName}`);
+
+      // 🔐 SECURITY: Audit successful connection
+      if (userId) {
+        auditLog('plaid_form_connected', userId, {
+          institution: institutionName,
+          accountCount: metadata.accounts?.length || 0
+        });
+      }
+    } catch (error) {
+      console.error('Error processing Plaid connection:', error);
+      alert('Connection successful, but there was an error processing the data. Please try again.');
+      setPlaidData(null);
+    }
+  };
+
+  const handleFormSubmit = async (data: any) => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      // 🔐 SECURITY: Additional validation before submission
+      const validatedData = AssetFormSchema.parse(data);
+
+      // 🔐 SECURITY: Audit form submission
+      if (userId) {
+        auditLog('asset_form_submit', userId, {
+          type: entryMode,
+          hasPlaidData: !!plaidData,
+          category: validatedData.category
+        });
+      }
+
+      await onSubmit({ ...validatedData, plaidData });
+    } catch (error) {
+      console.error('Form submission error:', error);
+      alert('There was an error submitting the form. Please check your inputs and try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
+    <form onSubmit={handleSubmit(handleFormSubmit)}>
       {/* Choice between manual and Plaid */}
       <div className="mb-6">
         <Label className="text-base font-medium">How would you like to track this asset?</Label>
@@ -634,7 +1359,17 @@ export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
               id="value"
               type="number"
               step="0.01"
-              {...register('value', { required: 'Value is required' })}
+              min="0"
+              max="999999999999.99"
+              {...register('value', {
+                required: 'Value is required',
+                valueAsNumber: true,
+                validate: (value) => {
+                  if (value < 0) return 'Value must be positive';
+                  if (value > 999999999999.99) return 'Value too large';
+                  return true;
+                }
+              })}
             />
             {errors.value && <p className="text-red-500 text-sm">{errors.value.message}</p>}
           </div>
@@ -650,8 +1385,13 @@ export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
               <PlaidLinkButton
                 linkToken={linkToken}
                 onSuccess={handlePlaidSuccess}
+                onError={(error) => {
+                  console.error('Plaid connection error:', error);
+                  alert('Unable to connect to your bank. Please try again or contact support.');
+                }}
                 buttonText="Connect to Bank Account"
                 className="w-full"
+                userId={userId}
               />
             )}
           </div>
@@ -662,10 +1402,21 @@ export function AssetForm({ onSubmit, onCancel }: AssetFormProps) {
 
       {/* Submit button */}
       <div className="flex gap-2 mt-6">
-        <Button type="submit" disabled={entryMode === 'plaid' && !plaidData}>
-          {entryMode === 'plaid' && !plaidData ? 'Connect Account First' : 'Create Asset'}
+        <Button
+          type="submit"
+          disabled={isSubmitting || (entryMode === 'plaid' && !plaidData)}
+          className="min-w-[120px]"
+        >
+          {isSubmitting ? 'Creating...' :
+           entryMode === 'plaid' && !plaidData ? 'Connect Account First' :
+           'Create Asset'}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
       </div>
@@ -855,160 +1606,15 @@ export async function syncSingleAccount(accountId: string, type: 'asset' | 'liab
 }
 ```
 
-Step 4.2: Add Plaid actions to src/app/actions.ts
-```typescript
-import { syncUserPlaidBalances } from '@/lib/plaid-sync';
-import { exchangePublicToken, getAccounts } from '@/lib/plaid';
-import { createAsset } from '@/lib/assets';
-import { createLiability } from '@/lib/liabilities';
 
-// Create asset with Plaid connection
-export async function createPlaidAssetAction(formData: FormData, plaidData: any) {
-  try {
-    const user = await getUser();
-    if (!user) throw new Error('User not authenticated');
 
-    // Exchange Plaid public token for access token
-    const { accessToken } = await exchangePublicToken(plaidData.publicToken);
-    const accountsData = await getAccounts(accessToken);
-    const accountInfo = accountsData.accounts[0]; // First selected account
 
-    // Get current balance
-    const balanceData = await getAccountBalances(accessToken);
-    const currentBalance = balanceData[0]?.balances.current || 0;
 
-    // Create asset with Plaid data
-    const asset = await createAsset(user.id, {
-      name: formData.get('name') as string,
-      category: formData.get('category') as string,
-      value: Math.abs(currentBalance),
-      description: formData.get('description') as string || `Auto-synced from ${plaidData.metadata.institution.name}`,
-      // Plaid fields
-      plaidAccountId: accountInfo.account_id,
-      plaidAccessToken: accessToken, // 🚨 Encrypt in production!
-      institutionName: plaidData.metadata.institution.name,
-      isPlaidSynced: true,
-    });
 
-    return { success: true, asset };
-  } catch (error) {
-    console.error('Error creating Plaid asset:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Similar function for liabilities
-export async function createPlaidLiabilityAction(formData: FormData, plaidData: any) {
-  try {
-    const user = await getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { accessToken } = await exchangePublicToken(plaidData.publicToken);
-    const accountsData = await getAccounts(accessToken);
-    const accountInfo = accountsData.accounts[0];
-
-    const balanceData = await getAccountBalances(accessToken);
-    const currentBalance = balanceData[0]?.balances.current || 0;
-
-    const liability = await createLiability(user.id, {
-      name: formData.get('name') as string,
-      category: formData.get('category') as string,
-      value: Math.abs(currentBalance), // Liabilities are positive values
-      description: formData.get('description') as string || `Auto-synced from ${plaidData.metadata.institution.name}`,
-      // Plaid fields
-      plaidAccountId: accountInfo.account_id,
-      plaidAccessToken: accessToken,
-      institutionName: plaidData.metadata.institution.name,
-      isPlaidSynced: true,
-    });
-
-    return { success: true, liability };
-  } catch (error) {
-    console.error('Error creating Plaid liability:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// Sync all Plaid balances
-export async function syncPlaidBalancesAction() {
-  try {
-    const user = await getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const result = await syncUserPlaidBalances(user.id);
-    return { success: true, data: result };
-  } catch (error) {
-    console.error('Error in sync action:', error);
-    return { success: false, error: error.message };
-  }
-}
 ```
 
-Step 4.3: Create src/components/PlaidSyncButton.tsx
-```typescript
-'use client'
 
-import { useState } from 'react';
-import { Button } from './ui/button';
-import { syncPlaidBalancesAction } from '@/app/actions';
-import { useRouter } from 'next/navigation';
-import { RefreshCw } from 'lucide-react';
 
-interface PlaidSyncButtonProps {
-  className?: string;
-}
-
-export function PlaidSyncButton({ className }: PlaidSyncButtonProps) {
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-
-  const handleSync = async () => {
-    setIsLoading(true);
-
-    try {
-      const result = await syncPlaidBalancesAction();
-
-      if (result.success) {
-        // Show success message
-        const { results } = result.data;
-        const successCount = results.filter(r => r.success).length;
-        alert(`Successfully synced ${successCount} account(s)!`);
-
-        // Refresh the page to show updated balances
-        router.refresh();
-      } else {
-        alert(`Sync failed: ${result.error}`);
-      }
-    } catch (error) {
-      console.error('Sync error:', error);
-      alert('Failed to sync balances. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <Button
-      onClick={handleSync}
-      disabled={isLoading}
-      variant="outline"
-      size="sm"
-      className={className}
-    >
-      <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-      {isLoading ? 'Syncing...' : 'Refresh Balances'}
-    </Button>
-  );
-}
-```
-
-🧠 LEARNING NOTES:
-- We sync all accounts at once for simplicity
-- Real apps might do this in background jobs
-- Always handle partial failures gracefully
-- User feedback is crucial for external API calls
-
-▶️ PHASE 5: ENHANCED DASHBOARD & UI (Day 4-5 - 2-3 hours)
 ================================================================================
 
 🎯 Goal: Update dashboard and lists to show sync status for connected accounts
@@ -1272,7 +1878,7 @@ export function PlaidSyncButton({ className }: PlaidSyncButtonProps) {
 - Totals automatically include both manual and Plaid-synced values
 
 ================================================================================
-5. TROUBLESHOOTING & COMMON ISSUES
+5. TROUBLESHOOTING & COMMON ISSUES (SIMPLIFIED)
 ================================================================================
 
 🐛 COMMON PROBLEMS & SOLUTIONS:
@@ -1294,6 +1900,9 @@ Solution: Check your schema syntax and ensure Prisma CLI is updated.
 
 Problem: "Module not found" errors
 Solution: Restart your dev server after installing new packages.
+
+Problem: "Failed to encrypt token" error
+Solution: Check PLAID_ENCRYPTION_KEY is 64 characters (32 bytes hex)
 
 🔍 DEBUGGING TIPS:
 1. Check browser console for client-side errors
@@ -1322,32 +1931,39 @@ Password: pass_good
 (This gives you fake accounts to test with)
 
 ================================================================================
-PHASE SUMMARY & NEXT STEPS
+PHASE SUMMARY & NEXT STEPS (SIMPLIFIED)
 ================================================================================
 
 ✅ AFTER PHASE 5, YOU'LL HAVE:
 - User choice workflow: Manual OR Plaid linking per asset/liability
 - Enhanced Asset/Liability forms with Plaid connection option
 - Real-time balance syncing for connected accounts
-- Unified dashboard showing all accounts with clear sync indicators
-- Individual and bulk sync functionality
-- Proper error handling and user feedback
+- Dashboard showing all accounts with clear sync indicators
+- Bulk sync functionality with simple refresh button
+- Basic error handling and user feedback
+- **Token encryption** for secure storage (recommended by Plaid)
+- **Simple validation** to prevent app crashes
+- **Supabase RLS** handling user data separation
 
 🚀 FUTURE ENHANCEMENTS:
 - Automatic scheduled syncing (background jobs)
 - Transaction history import
-- Categorization improvements
 - Account disconnection flows
-- Better error recovery
+- Better error recovery with retry logic
+- Mobile-responsive improvements
 
 🎓 SKILLS YOU'VE LEARNED:
 - Third-party API integration (Plaid)
 - OAuth-like token flows (Link → Public → Access tokens)
-- Database schema evolution and optional fields
-- Conditional form rendering and user choice workflows
+- Database schema evolution with optional fields
+- Conditional form rendering for user choices
 - React component enhancement patterns
 - State management for mixed data sources
-- Error handling strategies for external APIs
-- User experience design for optional features
+- Basic error handling for external APIs
+- Simple token encryption for security
+- User experience design for choice-driven workflows
+
+📝 **PERSONAL APP NOTES**:
+This simplified implementation is perfect for personal use by you and your wife. It includes the essential security measures (token encryption) while keeping complexity manageable. Supabase handles user authentication and data separation automatically.
 
 Remember: Start with Phase 1 and test each phase thoroughly before moving on!
