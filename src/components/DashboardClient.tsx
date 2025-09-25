@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, ReactNode } from "react"
 import { AssetForm } from "./AssetForm"
 import { LiabilityForm } from "./LiabilityForm"
 import { AssetsList } from "./AssetsList"
@@ -17,15 +17,11 @@ import {
 } from "@/app/actions"
 import type { AssetWithNumberValue, LiabilityWithNumberValue } from "@/lib/calculations"
 
-// 🎓 LEARNING: Client component for managing state and interactions
-// Server components can't have state or event handlers, so we use client components for those
-
 interface DashboardClientProps {
   initialAssets: AssetWithNumberValue[]
   initialLiabilities: LiabilityWithNumberValue[]
 }
 
-// 🎓 LEARNING: UI States for forms/modals
 type UIState =
   | { type: 'list' }
   | { type: 'add-asset' }
@@ -33,202 +29,150 @@ type UIState =
   | { type: 'add-liability' }
   | { type: 'edit-liability', liability: LiabilityWithNumberValue }
 
+type ActionResult = { success: boolean; error?: string }
+
 export function DashboardClient({ initialAssets, initialLiabilities }: DashboardClientProps) {
-  // 🎓 LEARNING: State management for UI and data
   const [uiState, setUIState] = useState<UIState>({ type: 'list' })
   const [isLoading, setIsLoading] = useState(false)
 
-  // =================
-  // ASSET HANDLERS
-  // =================
+  const navigateToList = () => setUIState({ type: 'list' })
 
-  const handleCreateAsset = async (data: AssetFormData) => {
-    setIsLoading(true)
-    try {
-      const result = await createAssetAction(data)
-      if (result.success) {
-        setUIState({ type: 'list' })
-      } else {
-        // In a real app, show toast with result.error
-        console.error("Failed to create asset:", result.error)
+  const createGenericHandler = <T,>(
+    actionFn: (data: T) => Promise<ActionResult>,
+    entityType: string
+  ) => {
+    return async (data: T) => {
+      setIsLoading(true)
+      try {
+        const result = await actionFn(data)
+        if (result.success) {
+          navigateToList()
+        } else {
+          console.error(`Failed to create ${entityType}:`, result.error)
+        }
+      } finally {
+        setIsLoading(false)
       }
-    } finally {
-      setIsLoading(false)
     }
   }
 
-  const handleUpdateAsset = async (assetId: string, data: AssetFormData) => {
-    setIsLoading(true)
-    try {
-      const result = await updateAssetAction(assetId, data)
-      if (result.success) {
-        setUIState({ type: 'list' })
-      } else {
-        console.error("Failed to update asset:", result.error)
+  const updateGenericHandler = <T,>(
+    actionFn: (id: string, data: T) => Promise<ActionResult>,
+    entityType: string
+  ) => {
+    return async (id: string, data: T) => {
+      setIsLoading(true)
+      try {
+        const result = await actionFn(id, data)
+        if (result.success) {
+          navigateToList()
+        } else {
+          console.error(`Failed to update ${entityType}:`, result.error)
+        }
+      } finally {
+        setIsLoading(false)
       }
-    } finally {
-      setIsLoading(false)
     }
   }
 
-  const handleDeleteAsset = async (assetId: string) => {
-    const result = await deleteAssetAction(assetId)
-    if (!result.success) {
-      console.error("Failed to delete asset:", result.error)
-    }
-    // Note: No need to update state - revalidatePath in the action handles UI updates
-  }
-
-  // =================
-  // LIABILITY HANDLERS
-  // =================
-
-  const handleCreateLiability = async (data: LiabilityFormData) => {
-    setIsLoading(true)
-    try {
-      const result = await createLiabilityAction(data)
-      if (result.success) {
-        setUIState({ type: 'list' })
-      } else {
-        console.error("Failed to create liability:", result.error)
+  const deleteGenericHandler = (
+    actionFn: (id: string) => Promise<ActionResult>,
+    entityType: string
+  ) => {
+    return async (id: string) => {
+      const result = await actionFn(id)
+      if (!result.success) {
+        console.error(`Failed to delete ${entityType}:`, result.error)
       }
-    } finally {
-      setIsLoading(false)
     }
   }
 
-  const handleUpdateLiability = async (liabilityId: string, data: LiabilityFormData) => {
-    setIsLoading(true)
-    try {
-      const result = await updateLiabilityAction(liabilityId, data)
-      if (result.success) {
-        setUIState({ type: 'list' })
-      } else {
-        console.error("Failed to update liability:", result.error)
-      }
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  const handleCreateAsset = createGenericHandler(createAssetAction, 'asset')
+  const handleUpdateAsset = updateGenericHandler(updateAssetAction, 'asset')
+  const handleDeleteAsset = deleteGenericHandler(deleteAssetAction, 'asset')
 
-  const handleDeleteLiability = async (liabilityId: string) => {
-    const result = await deleteLiabilityAction(liabilityId)
-    if (!result.success) {
-      console.error("Failed to delete liability:", result.error)
-    }
-  }
+  const handleCreateLiability = createGenericHandler(createLiabilityAction, 'liability')
+  const handleUpdateLiability = updateGenericHandler(updateLiabilityAction, 'liability')
+  const handleDeleteLiability = deleteGenericHandler(deleteLiabilityAction, 'liability')
 
-  // 🎓 LEARNING: Conditional rendering based on UI state
-  if (uiState.type === 'add-asset') {
-    return (
-      <div className="space-y-6">
-        <AssetForm
-          onSubmit={handleCreateAsset}
-          isLoading={isLoading}
-        />
-        <div className="text-center">
-          <button
-            onClick={() => setUIState({ type: 'list' })}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
-          >
-            <span>←</span>
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (uiState.type === 'edit-asset') {
-    return (
-      <div className="space-y-6">
-        <AssetForm
-          onSubmit={(data) => handleUpdateAsset(uiState.asset.id, data)}
-          initialData={{
-            name: uiState.asset.name,
-            category: uiState.asset.category,
-            value: uiState.asset.value.toString(),
-            description: uiState.asset.description || "",
-          }}
-          isLoading={isLoading}
-        />
-        <div className="text-center">
-          <button
-            onClick={() => setUIState({ type: 'list' })}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
-          >
-            <span>←</span>
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (uiState.type === 'add-liability') {
-    return (
-      <div className="space-y-6">
-        <LiabilityForm
-          onSubmit={handleCreateLiability}
-          isLoading={isLoading}
-        />
-        <div className="text-center">
-          <button
-            onClick={() => setUIState({ type: 'list' })}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
-          >
-            <span>←</span>
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (uiState.type === 'edit-liability') {
-    return (
-      <div className="space-y-6">
-        <LiabilityForm
-          onSubmit={(data) => handleUpdateLiability(uiState.liability.id, data)}
-          initialData={{
-            name: uiState.liability.name,
-            category: uiState.liability.category,
-            value: uiState.liability.value.toString(),
-            description: uiState.liability.description || "",
-          }}
-          isLoading={isLoading}
-        />
-        <div className="text-center">
-          <button
-            onClick={() => setUIState({ type: 'list' })}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
-          >
-            <span>←</span>
-            Back to Dashboard
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  // Default: Show the lists
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <AssetsList
-        assets={initialAssets}
-        onAdd={() => setUIState({ type: 'add-asset' })}
-        onEdit={(asset) => setUIState({ type: 'edit-asset', asset })}
-        onDelete={handleDeleteAsset}
-        isLoading={isLoading}
-      />
-
-      <LiabilitiesList
-        liabilities={initialLiabilities}
-        onAdd={() => setUIState({ type: 'add-liability' })}
-        onEdit={(liability) => setUIState({ type: 'edit-liability', liability })}
-        onDelete={handleDeleteLiability}
-        isLoading={isLoading}
-      />
+  const renderBackButton = () => (
+    <div className="text-center">
+      <button
+        onClick={navigateToList}
+        className="inline-flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200 btn-financial"
+      >
+        <span>←</span>
+        Back to Dashboard
+      </button>
     </div>
   )
+
+  const renderFormContainer = (children: ReactNode) => (
+    <div className="space-y-6">
+      {children}
+      {renderBackButton()}
+    </div>
+  )
+
+  const createInitialFormData = (item: AssetWithNumberValue | LiabilityWithNumberValue) => ({
+    name: item.name,
+    category: item.category,
+    value: item.value.toString(),
+    description: item.description || ""
+  })
+
+  const renderFormByState = () => {
+    switch (uiState.type) {
+      case 'add-asset':
+        return renderFormContainer(
+          <AssetForm onSubmit={handleCreateAsset} isLoading={isLoading} />
+        )
+
+      case 'edit-asset':
+        return renderFormContainer(
+          <AssetForm
+            onSubmit={(data) => handleUpdateAsset(uiState.asset.id, data)}
+            initialData={createInitialFormData(uiState.asset)}
+            isLoading={isLoading}
+          />
+        )
+
+      case 'add-liability':
+        return renderFormContainer(
+          <LiabilityForm onSubmit={handleCreateLiability} isLoading={isLoading} />
+        )
+
+      case 'edit-liability':
+        return renderFormContainer(
+          <LiabilityForm
+            onSubmit={(data) => handleUpdateLiability(uiState.liability.id, data)}
+            initialData={createInitialFormData(uiState.liability)}
+            isLoading={isLoading}
+          />
+        )
+
+      case 'list':
+      default:
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <AssetsList
+              assets={initialAssets}
+              onAdd={() => setUIState({ type: 'add-asset' })}
+              onEdit={(asset) => setUIState({ type: 'edit-asset', asset })}
+              onDelete={handleDeleteAsset}
+              isLoading={isLoading}
+            />
+            <LiabilitiesList
+              liabilities={initialLiabilities}
+              onAdd={() => setUIState({ type: 'add-liability' })}
+              onEdit={(liability) => setUIState({ type: 'edit-liability', liability })}
+              onDelete={handleDeleteLiability}
+              isLoading={isLoading}
+            />
+          </div>
+        )
+    }
+  }
+
+  return renderFormByState()
 }
