@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Form,
   FormControl,
@@ -14,15 +15,13 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-// 🎓 LEARNING: Similar schema to Asset, but for debts/liabilities
 const liabilityFormSchema = z.object({
   name: z.string().min(1, "Liability name is required").max(100, "Name too long"),
   category: z.string().min(1, "Category is required").max(50, "Category too long"),
   value: z.string().refine((val) => {
-    const num = parseFloat(val)
-    return !isNaN(num) && num >= 0
+    const numericValue = parseFloat(val)
+    return !isNaN(numericValue) && numericValue >= 0
   }, "Please enter a valid positive number"),
   description: z.string().max(500, "Description too long").optional(),
 })
@@ -35,148 +34,141 @@ interface LiabilityFormProps {
   isLoading?: boolean
 }
 
-export function LiabilityForm({ onSubmit, initialData, isLoading }: LiabilityFormProps) {
+const FORM_DEFAULT_VALUES = {
+  name: "",
+  category: "",
+  value: "",
+  description: "",
+}
+
+const LOADING_SPINNER = (
+  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+)
+
+export function LiabilityForm({ onSubmit, initialData, isLoading = false }: LiabilityFormProps) {
   const form = useForm<LiabilityFormValues>({
     resolver: zodResolver(liabilityFormSchema),
     defaultValues: {
-      name: initialData?.name || "",
-      category: initialData?.category || "",
-      value: initialData?.value || "",
-      description: initialData?.description || "",
+      name: initialData?.name ?? FORM_DEFAULT_VALUES.name,
+      category: initialData?.category ?? FORM_DEFAULT_VALUES.category,
+      value: initialData?.value ?? FORM_DEFAULT_VALUES.value,
+      description: initialData?.description ?? FORM_DEFAULT_VALUES.description,
     },
   })
 
-  const handleSubmit = async (data: LiabilityFormValues) => {
+  const isEditMode = Boolean(initialData)
+
+  const handleFormSubmission = async (data: LiabilityFormValues) => {
     try {
       await onSubmit(data)
-      if (!initialData) {
+      if (!isEditMode) {
         form.reset()
       }
     } catch (error) {
-      console.error("Failed to submit liability:", error)
+      console.error("Liability submission failed:", error)
     }
   }
 
+  const renderFormHeader = () => (
+    <CardHeader className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+          <span className="text-red-600 text-lg">📋</span>
+        </div>
+        <div>
+          <CardTitle className="heading-md">
+            {isEditMode ? "Edit Liability" : "Add New Liability"}
+          </CardTitle>
+          <CardDescription className="mt-1">
+            {isEditMode
+              ? "Update your liability information below"
+              : "Add a new liability (debt) to track in your net worth"}
+          </CardDescription>
+        </div>
+      </div>
+    </CardHeader>
+  )
+
+  const renderFormField = (
+    name: keyof LiabilityFormValues,
+    label: string,
+    placeholder: string,
+    description: string,
+    inputProps: Record<string, unknown> = {}
+  ) => (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Input placeholder={placeholder} {...field} {...inputProps} />
+          </FormControl>
+          <FormDescription>{description}</FormDescription>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+
+  const renderSubmitButton = () => (
+    <div className="pt-4">
+      <Button
+        type="submit"
+        disabled={isLoading}
+        className="w-full btn-financial h-12 text-base font-medium"
+      >
+        {isLoading ? (
+          <div className="flex items-center gap-2">
+            {LOADING_SPINNER}
+            Saving...
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span>{isEditMode ? "💾 Update Liability" : "📋 Add Liability"}</span>
+          </div>
+        )}
+      </Button>
+    </div>
+  )
+
   return (
     <Card className="w-full max-w-2xl mx-auto financial-card">
-      <CardHeader className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
-            <span className="text-red-600 text-lg">📋</span>
-          </div>
-          <div>
-            <CardTitle className="heading-md">{initialData ? "Edit Liability" : "Add New Liability"}</CardTitle>
-            <CardDescription className="mt-1">
-              {initialData
-                ? "Update your liability information below"
-                : "Add a new liability (debt) to track in your net worth"}
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
+      {renderFormHeader()}
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 form-enhanced">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Liability Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., Credit Card, Mortgage, Student Loan"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Give your liability a descriptive name
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form onSubmit={form.handleSubmit(handleFormSubmission)} className="space-y-6 form-enhanced">
+            {renderFormField(
+              "name",
+              "Liability Name",
+              "e.g., Credit Card, Mortgage, Student Loan",
+              "Give your liability a descriptive name"
+            )}
 
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="e.g., Credit Card, Mortgage, Personal Loan, Auto Loan"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Categorize your liability for better organization
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {renderFormField(
+              "category",
+              "Category",
+              "e.g., Credit Card, Mortgage, Personal Loan, Auto Loan",
+              "Categorize your liability for better organization"
+            )}
 
-            <FormField
-              control={form.control}
-              name="value"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Current Balance</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Enter the current outstanding balance of this debt
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {renderFormField(
+              "value",
+              "Current Balance",
+              "0.00",
+              "Enter the current outstanding balance of this debt",
+              { type: "number", step: "0.01" }
+            )}
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Additional notes about this liability..."
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Any additional details or notes
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {renderFormField(
+              "description",
+              "Description (Optional)",
+              "Additional notes about this liability...",
+              "Any additional details or notes"
+            )}
 
-            <div className="pt-4">
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full btn-financial h-12 text-base font-medium"
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Saving...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <span>{initialData ? "💾 Update Liability" : "📋 Add Liability"}</span>
-                  </div>
-                )}
-              </Button>
-            </div>
+            {renderSubmitButton()}
           </form>
         </Form>
       </CardContent>
