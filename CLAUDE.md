@@ -78,6 +78,7 @@ src/
 
 ## Important Files
 - `src/app/page.tsx` - Main dashboard component with auth check
+- `src/app/actions.ts` - Server actions for CRUD operations, auth checks, and data fetching
 - `src/lib/auth.ts` - Authentication utilities (requireAuth, getUser)
 - `src/lib/server.ts` - Server-side Supabase utilities (updated getUser function)
 - `src/lib/assets.ts` - Asset CRUD operations (completed Sept 18, 2025)
