@@ -38,3 +38,13 @@ model Liability {
 
   @@map("liabilities")
 }
+
+model NetWorthSnapshot{
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  networth       Decimal  @db.Decimal(15, 2) 
+  assets       Decimal  @db.Decimal(15, 2) 
+  liabilities       Decimal  @db.Decimal(15, 2) 
+  userId      String   @db.Uuid
+  createdAt   DateTime @default(now())
+  @@map("snapshots")
+}
