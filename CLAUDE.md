@@ -66,6 +66,7 @@ src/
 - **Database Tables**:
   - `assets` - User assets (savings, investments, property, etc.) with Supabase Auth user IDs
   - `liabilities` - User debts (loans, credit cards, mortgages, etc.) with Supabase Auth user IDs
+  - `snapshots` - Monthly net worth snapshots (assets total, liabilities total, net worth, timestamp)
 - **User Management**: Uses Supabase Auth directly (no custom User model), assets/liabilities store auth user IDs
 - Environment variables in `.env.local`
 
@@ -91,6 +92,7 @@ src/
 - `components.json` - ShadCN/UI configuration
 - `.env.local` - Environment variables (Supabase config)
 - `asset-liability-implementation-plan.txt` - Development roadmap and progress
+- `net-worth-tracking-progress.md` - Net worth tracking implementation progress and plan
 
 ## Development Notes
 - Uses App Router with Server Components
@@ -102,4 +104,10 @@ src/
 - Server-side middleware handles route protection automatically
 - Updated authentication utilities from `getAuth()` to `getUser()` pattern
 - **Database Schema Completed** (Sept 16, 2025): Asset and Liability tables created with proper relationships
+
+## In Progress Features
+- **Net Worth Tracking Over Time** (Sept 28, 2025): Monthly snapshots with trend visualization
+  - ✅ Database: `NetWorthSnapshot` model added (migration: `20250928164126_add_networth_snapshots`)
+  - 🔄 Implementation: See `net-worth-tracking-progress.md` for detailed progress
+  - 📊 Goal: Fidelity-style charts showing financial growth over time with manual snapshot creation
 
