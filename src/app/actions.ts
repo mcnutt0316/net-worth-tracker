@@ -8,6 +8,8 @@ import { redirect } from "next/navigation"
 import { createAsset, updateAsset, deleteAsset, getAssets } from "@/lib/assets"
 import { createLiability, updateLiability, deleteLiability, getLiabilities } from "@/lib/liabilities"
 import { getUser } from "@/lib/auth"
+import { get } from "http"
+import { getNetWorthSummary } from "@/lib/calculations"
 
 // 🎓 LEARNING: Server Action Types
 // These match our form schemas but convert string numbers to actual numbers
@@ -217,5 +219,44 @@ export async function getUserLiabilitiesAction() {
   } catch (error) {
     console.error("Failed to fetch liabilities:", error)
     return []
+  }
+}
+
+export async function createSnapshotAction(){
+  try{
+    const user = await getUser()
+    if(!user) {
+      redirect("/auth")
+    }
+    const assets = await getUserAssetsAction()
+    const liabilities = await getUserLiabilitiesAction()
+    const netWorth = getNetWorthSummary(assets: Asset[], liabilities: Liability[]): { totalAssets: number; totalLiabilities: number; netWorth: number; formattedAssets: string; formattedLiabilities: string; formattedNetWorth: string; }
+    revalidatePath("/")
+    return { success: true }
+  }
+  catch (error) {
+    console.error("Failed to create Snapshot:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to create Snapshot"
+    }
+  }
+}
+
+export async function getSnapshotAction(){
+  try{
+    const user = await getUser()
+    if (!user) {
+      return []
+    }
+    const assets = await getAssets(user.id)
+    const liabilities = await getLiabilities(user.id)
+  }
+  catch (error) {
+    console.error("Failed to get Snapshot:", error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to get Snapshot"
+    }
   }
 }
