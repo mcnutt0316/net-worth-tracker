@@ -106,8 +106,11 @@ src/
 - **Database Schema Completed** (Sept 16, 2025): Asset and Liability tables created with proper relationships
 
 ## In Progress Features
-- **Net Worth Tracking Over Time** (Sept 28, 2025): Monthly snapshots with trend visualization
+- **Net Worth Tracking Over Time** (Sept 29, 2025): Monthly snapshots with trend visualization
   - ✅ Database: `NetWorthSnapshot` model added (migration: `20250928164126_add_networth_snapshots`)
-  - 🔄 Implementation: See `net-worth-tracking-progress.md` for detailed progress
-  - 📊 Goal: Fidelity-style charts showing financial growth over time with manual snapshot creation
+  - 🔄 **Phase 2 - Core Functionality**: Server actions partially implemented, utilities needed next
+  - ⏳ **Current Status**: Need to complete `src/lib/snapshots.ts` utilities to unblock server actions
+  - 📋 **Next Steps**: Complete utilities → fix server actions → add dashboard button
+  - 📊 **Goal**: Fidelity-style charts showing financial growth over time with manual snapshot creation
+  - 📄 **Detailed Progress**: See `net-worth-tracking-progress.md` for complete implementation notes
 
