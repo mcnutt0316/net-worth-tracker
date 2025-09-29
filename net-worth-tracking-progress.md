@@ -14,19 +14,22 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
   - Migration file: `20250928164126_add_networth_snapshots`
   - Database table created and Prisma client regenerated
 
-### 🔄 Phase 2: Core Snapshot Functionality (NEXT)
-1. **Create snapshot utilities** (`src/lib/snapshots.ts`):
+### 🔄 Phase 2: Core Snapshot Functionality (IN PROGRESS)
+1. **Create snapshot utilities** (`src/lib/snapshots.ts`): ⏳ IN PROGRESS
    - Database CRUD operations following existing asset/liability patterns
    - Integration with existing `getNetWorthSummary()` calculations
-   - Functions: `createSnapshot()`, `getSnapshots()`, `getSnapshotsInRange()`, etc.
+   - Functions: `createSnapshot()`, `getSnapshots()`, etc.
+   - **Status**: Learning phase complete, ready to implement utilities
 
-2. **Extend server actions** (`src/app/actions.ts`):
-   - `createSnapshotAction()` - captures current totals and saves to database
-   - `getSnapshotHistoryAction()` - retrieves historical data
-   - Follow existing error handling and authentication patterns
+2. **Extend server actions** (`src/app/actions.ts`): 🔄 PARTIALLY COMPLETE
+   - ✅ `createSnapshotAction()` - basic structure implemented, needs completion
+   - ✅ `getSnapshotAction()` - basic structure implemented, needs fixes
+   - ❌ **Blockers**: Need snapshot utilities first, then fix function calls
+   - **Status**: Server actions drafted but incomplete without utility functions
 
-3. **Add "Take Snapshot" button** to dashboard:
-   - Simple manual snapshot creation
+3. **Add "Take Snapshot" button** to dashboard: 📋 PLANNED
+   - Simple manual snapshot creation at bottom of dashboard
+   - Full-width on mobile, separate from asset/liability containers
    - Success/error feedback to user
 
 ### 📅 Phase 3: Chart Visualization (PLANNED)
@@ -61,13 +64,26 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 3. **Pattern consistency**: Following existing file patterns makes code maintainable
 4. **Phase approach**: Start simple (manual snapshots) then add complexity (automation)
 
-## Current Status
-- ✅ Database foundation complete and tested
-- ⏳ Ready to begin Phase 2 implementation
-- 📊 Future: Chart visualization and dashboard integration
+## Current Status - Sept 29, 2025
+- ✅ **Phase 1**: Database foundation complete and tested
+- 🔄 **Phase 2**: Server actions partially implemented, utilities needed
+- ⏳ **Next**: Complete snapshot utilities to unblock server actions
+- 📊 **Future**: Chart visualization and dashboard integration
+
+## Implementation Notes & Lessons
+### Server Action Development Insights
+- **Dependency order matters**: Utilities → Server Actions → UI Components
+- **Pattern consistency**: Following existing CRUD patterns from assets/liabilities
+- **Auth integration**: Reusing existing user fetching actions for DRY approach
+- **Error handling**: Matching existing server action error patterns
+
+### Current Blockers
+1. **Server actions incomplete**: `createSnapshotAction()` needs `createSnapshot()` utility
+2. **Function calls incomplete**: `getSnapshotAction()` fetching wrong data
+3. **Import dependencies**: Need snapshot utilities import in `actions.ts`
 
 ## Next Session Goals
-1. Create snapshot utilities (`src/lib/snapshots.ts`)
-2. Add snapshot server actions to existing `actions.ts`
-3. Implement "Take Snapshot" button on dashboard
-4. Test end-to-end snapshot creation flow
+1. ✅ **PRIORITY**: Complete `src/lib/snapshots.ts` with CRUD utilities
+2. ✅ Fix server actions in `actions.ts` (import utilities, fix function calls)
+3. ✅ Implement "Take Snapshot" button on dashboard
+4. ✅ Test end-to-end snapshot creation flow
