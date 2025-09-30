@@ -10,6 +10,9 @@ import { createLiability, updateLiability, deleteLiability, getLiabilities } fro
 import { getUser } from "@/lib/auth"
 import { get } from "http"
 import { getNetWorthSummary } from "@/lib/calculations"
+import { getSnapshots, createSnapshot } from "@/lib/snapshots"
+import { assert } from "console"
+import { number } from "zod"
 
 // 🎓 LEARNING: Server Action Types
 // These match our form schemas but convert string numbers to actual numbers
@@ -228,9 +231,15 @@ export async function createSnapshotAction(){
     if(!user) {
       redirect("/auth")
     }
-    const assets = await getUserAssetsAction()
-    const liabilities = await getUserLiabilitiesAction()
-    const netWorth = getNetWorthSummary(assets: Asset[], liabilities: Liability[]): { totalAssets: number; totalLiabilities: number; netWorth: number; formattedAssets: string; formattedLiabilities: string; formattedNetWorth: string; }
+    const assets = await getAssets(user.id)
+    const liabilities = await getLiabilities(user.id)
+    const summary = getNetWorthSummary(assets, liabilities)
+    const snapshotData = {
+      assets: summary.totalAssets,
+      liabilities: summary.totalLiabilities,
+      networth: summary.netWorth
+    }
+    await createSnapshot(user.id, snapshotData)
     revalidatePath("/")
     return { success: true }
   }
