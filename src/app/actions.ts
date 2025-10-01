@@ -8,11 +8,8 @@ import { redirect } from "next/navigation"
 import { createAsset, updateAsset, deleteAsset, getAssets } from "@/lib/assets"
 import { createLiability, updateLiability, deleteLiability, getLiabilities } from "@/lib/liabilities"
 import { getUser } from "@/lib/auth"
-import { get } from "http"
 import { getNetWorthSummary } from "@/lib/calculations"
 import { getSnapshots, createSnapshot } from "@/lib/snapshots"
-import { assert } from "console"
-import { number } from "zod"
 
 // 🎓 LEARNING: Server Action Types
 // These match our form schemas but convert string numbers to actual numbers
@@ -258,14 +255,16 @@ export async function getSnapshotAction(){
     if (!user) {
       return []
     }
-    const assets = await getAssets(user.id)
-    const liabilities = await getLiabilities(user.id)
+    const snapshots = await getSnapshots(user.id)
+    return snapshots.map(snapshot => ({
+      ...snapshot,
+      networth: Number(snapshot.networth),
+      assets: Number(snapshot.assets),
+      liabilities: Number(snapshot.liabilities)
+    }))
   }
   catch (error) {
     console.error("Failed to get Snapshot:", error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to get Snapshot"
-    }
+    return [];
   }
 }
