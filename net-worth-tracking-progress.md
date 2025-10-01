@@ -14,18 +14,23 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
   - Migration file: `20250928164126_add_networth_snapshots`
   - Database table created and Prisma client regenerated
 
-### 🔄 Phase 2: Core Snapshot Functionality (IN PROGRESS)
-1. **Create snapshot utilities** (`src/lib/snapshots.ts`): ⏳ IN PROGRESS
+### ✅ Phase 2: Core Snapshot Functionality (COMPLETED)
+1. **Create snapshot utilities** (`src/lib/snapshots.ts`): ✅ COMPLETE
    - Database CRUD operations following existing asset/liability patterns
    - Integration with existing `getNetWorthSummary()` calculations
-   - Functions: `createSnapshot()`, `getSnapshots()`, etc.
-   - **Status**: Learning phase complete, ready to implement utilities
+   - Functions: `createSnapshot()`, `getSnapshots()` implemented
+   - **Status**: Utilities complete and working
 
-2. **Extend server actions** (`src/app/actions.ts`): 🔄 PARTIALLY COMPLETE
-   - ✅ `createSnapshotAction()` - basic structure implemented, needs completion
-   - ✅ `getSnapshotAction()` - basic structure implemented, needs fixes
-   - ❌ **Blockers**: Need snapshot utilities first, then fix function calls
-   - **Status**: Server actions drafted but incomplete without utility functions
+2. **Extend server actions** (`src/app/actions.ts`): ✅ COMPLETE
+   - ✅ `createSnapshotAction()` - Fully implemented (lines 228-245)
+     - Fetches assets/liabilities using `getAssets()` and `getLiabilities()`
+     - Calculates summary using `getNetWorthSummary()`
+     - Creates snapshot with proper data mapping
+   - ✅ `getSnapshotAction()` - Fully implemented (lines 255-273)
+     - Fetches snapshots for authenticated user
+     - Converts Decimal types to numbers for frontend compatibility
+     - Returns empty array on error (matches existing patterns)
+   - **Status**: Server actions complete with proper type conversions and error handling
 
 3. **Add "Take Snapshot" button** to dashboard: 📋 PLANNED
    - Simple manual snapshot creation at bottom of dashboard
@@ -64,10 +69,10 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 3. **Pattern consistency**: Following existing file patterns makes code maintainable
 4. **Phase approach**: Start simple (manual snapshots) then add complexity (automation)
 
-## Current Status - Sept 29, 2025
+## Current Status - Oct 1, 2025
 - ✅ **Phase 1**: Database foundation complete and tested
-- 🔄 **Phase 2**: Server actions partially implemented, utilities needed
-- ⏳ **Next**: Complete snapshot utilities to unblock server actions
+- ✅ **Phase 2**: Snapshot utilities and server actions fully implemented
+- ⏳ **Next**: Add "Take Snapshot" button to dashboard UI
 - 📊 **Future**: Chart visualization and dashboard integration
 
 ## Implementation Notes & Lessons
@@ -77,13 +82,20 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 - **Auth integration**: Reusing existing user fetching actions for DRY approach
 - **Error handling**: Matching existing server action error patterns
 
-### Current Blockers
-1. **Server actions incomplete**: `createSnapshotAction()` needs `createSnapshot()` utility
-2. **Function calls incomplete**: `getSnapshotAction()` fetching wrong data
-3. **Import dependencies**: Need snapshot utilities import in `actions.ts`
+### Completed Blockers (Oct 1, 2025)
+1. ✅ **Server actions complete**: Both `createSnapshotAction()` and `getSnapshotAction()` fully implemented
+2. ✅ **Function calls fixed**: Proper use of `getAssets()`, `getLiabilities()`, `getSnapshots()`
+3. ✅ **Import dependencies**: All utilities properly imported in `actions.ts`
+4. ✅ **Type conversions**: Decimal to Number conversions for all snapshot fields
+
+### Key Implementation Details (Oct 1, 2025)
+- **Type mismatch resolution**: Used raw database functions (`getAssets()`, `getLiabilities()`) instead of action functions to preserve Prisma Decimal types for calculations
+- **Data mapping**: Properly mapped `summary` properties to `CreateSnapshotData` type (totalAssets → assets, etc.)
+- **Return patterns**: `getSnapshotAction()` follows existing patterns with empty array returns on errors
+- **Async/await**: Proper async handling for all database operations
 
 ## Next Session Goals
-1. ✅ **PRIORITY**: Complete `src/lib/snapshots.ts` with CRUD utilities
-2. ✅ Fix server actions in `actions.ts` (import utilities, fix function calls)
-3. ✅ Implement "Take Snapshot" button on dashboard
-4. ✅ Test end-to-end snapshot creation flow
+1. ✅ **PRIORITY**: Complete `src/lib/snapshots.ts` with CRUD utilities ✅ DONE
+2. ✅ Fix server actions in `actions.ts` (import utilities, fix function calls) ✅ DONE
+3. 📋 Implement "Take Snapshot" button on dashboard
+4. 📋 Test end-to-end snapshot creation flow
