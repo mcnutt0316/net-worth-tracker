@@ -107,13 +107,17 @@ src/
 - **Database Schema Completed** (Sept 16, 2025): Asset and Liability tables created with proper relationships
 
 ## In Progress Features
-- **Net Worth Tracking Over Time** (Oct 1, 2025): Monthly snapshots with trend visualization
+- **Net Worth Tracking Over Time** (Oct 2, 2025): Monthly snapshots with trend visualization
   - ✅ **Phase 1 - Database**: `NetWorthSnapshot` model added (migration: `20250928164126_add_networth_snapshots`)
   - ✅ **Phase 2 - Core Functionality**: Snapshot utilities and server actions complete
     - `src/lib/snapshots.ts`: `createSnapshot()` and `getSnapshots()` implemented
-    - `src/app/actions.ts`: `createSnapshotAction()` and `getSnapshotAction()` complete (lines 228-273)
-  - ⏳ **Current Status**: Backend complete, ready to add UI components
-  - 📋 **Next Steps**: Add "Take Snapshot" button → test flow → chart visualization
+    - `src/app/actions.ts`: `createSnapshotAction()` and `getSnapshotAction()` complete (lines 225-270)
+  - ✅ **Phase 2 - UI**: "Take Snapshot" button implemented
+    - `src/app/page.tsx`: Wrapper function `takeSnapshot()` added (lines 19-22)
+    - Card component with form at bottom of dashboard (lines 153-164)
+    - Uses native HTML form with server action (fire-and-forget pattern)
+  - ⏳ **Current Status**: Manual snapshot creation ready for testing
+  - 📋 **Next Steps**: Test snapshot flow → chart visualization (Phase 3)
   - 📊 **Goal**: Fidelity-style charts showing financial growth over time with manual snapshot creation
   - 📄 **Detailed Progress**: See `net-worth-tracking-progress.md` for complete implementation notes
 

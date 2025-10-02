@@ -32,10 +32,12 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
      - Returns empty array on error (matches existing patterns)
    - **Status**: Server actions complete with proper type conversions and error handling
 
-3. **Add "Take Snapshot" button** to dashboard: 📋 PLANNED
+3. **Add "Take Snapshot" button** to dashboard: ✅ COMPLETE
    - Simple manual snapshot creation at bottom of dashboard
-   - Full-width on mobile, separate from asset/liability containers
-   - Success/error feedback to user
+   - Full-width button inside Card component (matches existing financial-card styling)
+   - Placed after DashboardClient component for visual flow
+   - Uses native HTML form with server action pattern (fire-and-forget)
+   - Page auto-revalidates after snapshot creation via `revalidatePath("/")`
 
 ### 📅 Phase 3: Chart Visualization (PLANNED)
 4. **Install charting library**: `npm install recharts`
@@ -69,10 +71,11 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 3. **Pattern consistency**: Following existing file patterns makes code maintainable
 4. **Phase approach**: Start simple (manual snapshots) then add complexity (automation)
 
-## Current Status - Oct 1, 2025
+## Current Status - Oct 2, 2025
 - ✅ **Phase 1**: Database foundation complete and tested
 - ✅ **Phase 2**: Snapshot utilities and server actions fully implemented
-- ⏳ **Next**: Add "Take Snapshot" button to dashboard UI
+- ✅ **Phase 2 (UI)**: "Take Snapshot" button added to dashboard
+- ⏳ **Next**: Test end-to-end snapshot flow, then chart visualization
 - 📊 **Future**: Chart visualization and dashboard integration
 
 ## Implementation Notes & Lessons
@@ -94,8 +97,21 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 - **Return patterns**: `getSnapshotAction()` follows existing patterns with empty array returns on errors
 - **Async/await**: Proper async handling for all database operations
 
-## Next Session Goals
+## Session Progress (Oct 2, 2025)
 1. ✅ **PRIORITY**: Complete `src/lib/snapshots.ts` with CRUD utilities ✅ DONE
 2. ✅ Fix server actions in `actions.ts` (import utilities, fix function calls) ✅ DONE
-3. 📋 Implement "Take Snapshot" button on dashboard
+3. ✅ Implement "Take Snapshot" button on dashboard ✅ DONE
+   - Added wrapper function `takeSnapshot()` in `page.tsx` (lines 19-22)
+   - Imported `createSnapshotAction` from `./actions`
+   - Created Card component with form at bottom of dashboard (lines 153-164)
+   - Learned: Server actions in forms must return `Promise<void>`, not data objects
 4. 📋 Test end-to-end snapshot creation flow
+5. 📋 Begin chart visualization (Phase 3)
+
+### Key Learning: Server Actions with Forms (Oct 2, 2025)
+**Problem encountered**: TypeScript error when returning data from form action
+- Forms with `action` attribute expect: `(formData: FormData) => Promise<void>`
+- Server actions that return data: `() => Promise<{ success: boolean }>`
+- **Solution**: Remove `return` statement - forms use "fire and forget" pattern
+- The page auto-revalidates via `revalidatePath("/")`, no return value needed
+- **Mental model**: Server Components/Forms = fire & forget, Client Components = need feedback
