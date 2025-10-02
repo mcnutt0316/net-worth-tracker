@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/server"
 import { redirect } from "next/navigation"
-import { getUserAssetsAction, getUserLiabilitiesAction } from "./actions"
+import { getUserAssetsAction, getUserLiabilitiesAction, createSnapshotAction } from "./actions"
 import { calculateTotalAssets, calculateTotalLiabilities, calculateNetWorth, formatCurrency } from "@/lib/calculations"
 import { DashboardClient } from "@/components/DashboardClient"
 
@@ -15,6 +15,10 @@ async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()
   redirect("/auth")
+}
+async function takeSnapshot() {
+  "use server"
+   await createSnapshotAction()
 }
 
 export default async function Home() {
@@ -142,10 +146,22 @@ export default async function Home() {
             </CardContent>
           </Card>
         </div>
-
+        
         {/* 🎓 LEARNING: Client component for interactive parts */}
         {/* We pass server data to a client component that handles forms/modals */}
         <DashboardClient initialAssets={assets} initialLiabilities={liabilities} />
+        <Card className="financial-card">
+          <CardHeader>
+            <CardTitle>Net Worth Snapshot</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form action={takeSnapshot}>
+              <Button type="submit" className="w-full">
+                Take Snapshot
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
