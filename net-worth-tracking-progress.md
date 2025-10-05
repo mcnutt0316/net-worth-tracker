@@ -39,12 +39,19 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
    - Uses native HTML form with server action pattern (fire-and-forget)
    - Page auto-revalidates after snapshot creation via `revalidatePath("/")`
 
-### 📅 Phase 3: Chart Visualization (PLANNED)
-4. **Install charting library**: `npm install recharts`
-5. **Create chart components** (`src/components/trends/`):
-   - `NetWorthChart.tsx` - Fidelity-style line chart
-   - `TimeRangeSelector.tsx` - 6M, 1Y, 2Y, All time options
-   - Responsive design matching existing UI patterns
+### ✅ Phase 3: Chart Visualization (IN PROGRESS - Oct 5, 2025)
+4. **Install charting library**: ✅ COMPLETE
+   - Installed recharts for data visualization
+5. **Create chart components** (`src/components/trends/`): ⏳ IN PROGRESS
+   - ✅ `NetWorthChart.tsx` - Basic line chart implemented
+     - Client component with proper "use client" directive
+     - Data transformation using `.map()` to convert snapshots to chart format
+     - Date formatting: `toLocaleDateString('en-US', { month: 'short', year: 'numeric' })`
+     - Recharts components: ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Line
+     - Responsive design with ResponsiveContainer (width: 100%, height: 400px)
+     - Integrated into dashboard at `src/app/page.tsx` line 151
+     - Fetches data server-side via `getSnapshotAction()` in Promise.all
+   - 📋 `TimeRangeSelector.tsx` - Not yet implemented (6M, 1Y, 2Y, All time options)
 
 ### 🎨 Phase 4: Dashboard Integration (PLANNED)
 6. **Add trends section** to main dashboard
@@ -71,12 +78,13 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 3. **Pattern consistency**: Following existing file patterns makes code maintainable
 4. **Phase approach**: Start simple (manual snapshots) then add complexity (automation)
 
-## Current Status - Oct 2, 2025
+## Current Status - Oct 5, 2025
 - ✅ **Phase 1**: Database foundation complete and tested
 - ✅ **Phase 2**: Snapshot utilities and server actions fully implemented
 - ✅ **Phase 2 (UI)**: "Take Snapshot" button added to dashboard
-- ⏳ **Next**: Test end-to-end snapshot flow, then chart visualization
-- 📊 **Future**: Chart visualization and dashboard integration
+- ✅ **Phase 3 (Partial)**: Basic NetWorthChart component working
+- ⏳ **Next**: Polish chart (Tooltip, currency formatting, theme colors), build TimeRangeSelector
+- 📊 **Future**: Complete chart visualization and dashboard integration
 
 ## Implementation Notes & Lessons
 ### Server Action Development Insights
@@ -115,3 +123,43 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 - **Solution**: Remove `return` statement - forms use "fire and forget" pattern
 - The page auto-revalidates via `revalidatePath("/")`, no return value needed
 - **Mental model**: Server Components/Forms = fire & forget, Client Components = need feedback
+
+## Session Progress (Oct 5, 2025) - Chart Visualization
+1. ✅ Installed recharts library ✅ DONE
+2. ✅ Created `src/components/trends/NetWorthChart.tsx` ✅ DONE
+3. ✅ Integrated chart into dashboard ✅ DONE
+4. ✅ Implemented server-side data fetching for chart ✅ DONE
+5. ✅ Built working line chart with basic visualization ✅ DONE
+
+### Key Learnings: Building with Recharts (Oct 5, 2025)
+**Server vs Client Component Boundaries:**
+- Chart component is Client Component (`"use client"`) for interactivity
+- Data fetching happens server-side in `page.tsx` using `getSnapshotAction()`
+- Cannot call database functions (Prisma) directly from Client Components
+- Pattern: Server Component fetches → passes props → Client Component displays
+
+**TypeScript Array Types:**
+- `Type[]` = array of Type objects
+- `[Type]` = tuple with exactly one element (NOT what we want for arrays)
+- Can define shape of one object, then use `[]` to indicate array of many
+
+**Data Transformation for Charts:**
+- Recharts needs simple objects: `{ date: string, value: number }`
+- Use `.map()` to transform database snapshots into chart-friendly format
+- Date formatting: `toLocaleDateString('en-US', { month: 'short', year: 'numeric' })`
+- Extract only needed fields (date and networth value)
+
+**Recharts Component Structure:**
+- `ResponsiveContainer` wraps everything for responsive sizing
+- `LineChart` receives the transformed data
+- `dataKey` prop tells components which field to use (string matching object keys)
+- `XAxis dataKey="date"` - shows dates on X-axis
+- `YAxis` - automatically uses numeric values
+- `Line dataKey="value"` - plots the actual line using the value field
+- `CartesianGrid` adds background grid lines
+- Components are declarative - describe what to show, recharts handles rendering
+
+**Learning Approach:**
+- Junior engineer learning by doing - only hints provided, no code written
+- Reinforced fundamentals: .map(), arrow functions, TypeScript types, component composition
+- Successfully debugged syntax errors and conceptual misunderstandings independently
