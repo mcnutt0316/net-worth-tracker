@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/server"
 import { redirect } from "next/navigation"
-import { getUserAssetsAction, getUserLiabilitiesAction, createSnapshotAction } from "./actions"
+import { getUserAssetsAction, getUserLiabilitiesAction, createSnapshotAction, getSnapshotAction } from "./actions"
 import { calculateTotalAssets, calculateTotalLiabilities, calculateNetWorth, formatCurrency } from "@/lib/calculations"
 import { DashboardClient } from "@/components/DashboardClient"
+import NetWorthChart from "@/components/trends/NetWorthChart"
 
 // Force this page to be dynamic - prevents static generation
 export const dynamic = 'force-dynamic'
@@ -31,9 +32,10 @@ export default async function Home() {
 
   // 🎓 LEARNING: Fetch real data on the server side
   // This runs on the server before the page is sent to the browser
-  const [assets, liabilities] = await Promise.all([
+  const [assets, liabilities, snapshots] = await Promise.all([
     getUserAssetsAction(),
-    getUserLiabilitiesAction()
+    getUserLiabilitiesAction(),
+    getSnapshotAction()
   ])
 
   // 🎓 LEARNING: Calculate totals using our utility functions
@@ -146,7 +148,7 @@ export default async function Home() {
             </CardContent>
           </Card>
         </div>
-        
+        <NetWorthChart snapshots={snapshots}></NetWorthChart>
         {/* 🎓 LEARNING: Client component for interactive parts */}
         {/* We pass server data to a client component that handles forms/modals */}
         <DashboardClient initialAssets={assets} initialLiabilities={liabilities} />

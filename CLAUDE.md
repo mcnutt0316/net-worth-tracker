@@ -87,6 +87,7 @@ src/
 - `src/lib/calculations.ts` - Net worth calculation utilities (completed Sept 18, 2025)
 - `src/lib/snapshots.ts` - Snapshot CRUD operations (completed Oct 1, 2025)
 - `src/components/auth-form.tsx` - Authentication form with glass effect styling
+- `src/components/trends/NetWorthChart.tsx` - Line chart visualization for net worth over time (basic implementation Oct 5, 2025)
 - `src/middleware.ts` - Server-side route protection middleware
 - `prisma/schema.prisma` - Database schema with Asset, Liability, and NetWorthSnapshot models (uses Supabase Auth for users)
 - `prisma/migrations/` - Database migration history
@@ -107,7 +108,7 @@ src/
 - **Database Schema Completed** (Sept 16, 2025): Asset and Liability tables created with proper relationships
 
 ## In Progress Features
-- **Net Worth Tracking Over Time** (Oct 2, 2025): Monthly snapshots with trend visualization
+- **Net Worth Tracking Over Time** (Oct 5, 2025): Monthly snapshots with trend visualization
   - ✅ **Phase 1 - Database**: `NetWorthSnapshot` model added (migration: `20250928164126_add_networth_snapshots`)
   - ✅ **Phase 2 - Core Functionality**: Snapshot utilities and server actions complete
     - `src/lib/snapshots.ts`: `createSnapshot()` and `getSnapshots()` implemented
@@ -116,8 +117,16 @@ src/
     - `src/app/page.tsx`: Wrapper function `takeSnapshot()` added (lines 19-22)
     - Card component with form at bottom of dashboard (lines 153-164)
     - Uses native HTML form with server action (fire-and-forget pattern)
-  - ⏳ **Current Status**: Manual snapshot creation ready for testing
-  - 📋 **Next Steps**: Test snapshot flow → chart visualization (Phase 3)
+  - ⏳ **Phase 3 - Chart Visualization**: Basic chart working, needs polish
+    - ✅ Recharts library installed
+    - ✅ `src/components/trends/NetWorthChart.tsx`: Basic line chart component (Client Component)
+      - Data transformation with `.map()` to format snapshots for recharts
+      - Responsive design with ResponsiveContainer
+      - Components: LineChart, Line, XAxis, YAxis, CartesianGrid
+    - ✅ Integrated into dashboard (`src/app/page.tsx` line 151)
+    - ✅ Server-side data fetching via `getSnapshotAction()` in Promise.all (line 35-39)
+    - 📋 TODO: Add Tooltip, currency formatting, theme colors
+    - 📋 TODO: Build `TimeRangeSelector.tsx` component (6M, 1Y, 2Y, All time filters)
   - 📊 **Goal**: Fidelity-style charts showing financial growth over time with manual snapshot creation
   - 📄 **Detailed Progress**: See `net-worth-tracking-progress.md` for complete implementation notes
 
