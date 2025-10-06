@@ -148,7 +148,17 @@ export default async function Home() {
             </CardContent>
           </Card>
         </div>
-        <NetWorthChart snapshots={snapshots}></NetWorthChart>
+
+        {/* Net Worth Trend Chart */}
+        <Card className="financial-card mb-10">
+          <CardHeader>
+            <CardTitle>Net Worth Over Time</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NetWorthChart snapshots={snapshots} />
+          </CardContent>
+        </Card>
+
         {/* 🎓 LEARNING: Client component for interactive parts */}
         {/* We pass server data to a client component that handles forms/modals */}
         <DashboardClient initialAssets={assets} initialLiabilities={liabilities} />
