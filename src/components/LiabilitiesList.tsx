@@ -157,7 +157,7 @@ export function LiabilitiesList({ liabilities, onEdit, onDelete, onAdd, isLoadin
           <Button
             onClick={onAdd}
             disabled={isDisabled}
-            className="btn-financial"
+            className="btn-financial bg-red-700 text-white hover:bg-red-800"
             aria-label="Add new liability"
           >
             <Plus className="h-4 w-4 mr-2" />
