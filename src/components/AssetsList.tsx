@@ -157,7 +157,7 @@ export function AssetsList({ assets, onEdit, onDelete, onAdd, isLoading }: Asset
           <Button
             onClick={onAdd}
             disabled={isDisabled}
-            className="btn-financial"
+            className="btn-financial bg-green-600 text-white hover:bg-green-700"
             aria-label="Add new asset"
           >
             <Plus className="h-4 w-4 mr-2" />

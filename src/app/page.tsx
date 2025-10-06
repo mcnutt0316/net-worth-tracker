@@ -49,7 +49,7 @@ export default async function Home() {
         {/* Enhanced header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-10">
           <div className="mb-4 sm:mb-0">
-            <h1 className="heading-xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="heading-xl text-blue-600">
               Net Worth Tracker
             </h1>
             <p className="text-muted-foreground mt-2">
@@ -62,7 +62,7 @@ export default async function Home() {
               <p className="font-medium">{user.email}</p>
             </div>
             <form action={signOut}>
-              <Button variant="outline" type="submit" className="btn-financial">
+              <Button type="submit" className="btn-financial bg-gray-600 text-white hover:bg-gray-700">
                 Sign Out
               </Button>
             </form>
@@ -168,8 +168,11 @@ export default async function Home() {
           </CardHeader>
           <CardContent>
             <form action={takeSnapshot}>
-              <Button type="submit" className="w-full">
-                Take Snapshot
+              <Button
+                type="submit"
+                className="w-full btn-financial bg-blue-600 text-white hover:bg-blue-700"
+              >
+                📸 Take Snapshot
               </Button>
             </form>
           </CardContent>
