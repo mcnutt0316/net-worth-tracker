@@ -108,24 +108,25 @@ src/
 - **Database Schema Completed** (Sept 16, 2025): Asset and Liability tables created with proper relationships
 
 ## In Progress Features
-- **Net Worth Tracking Over Time** (Oct 5, 2025): Monthly snapshots with trend visualization
+- **Net Worth Tracking Over Time** (Oct 7, 2025): Monthly snapshots with trend visualization
   - ✅ **Phase 1 - Database**: `NetWorthSnapshot` model added (migration: `20250928164126_add_networth_snapshots`)
   - ✅ **Phase 2 - Core Functionality**: Snapshot utilities and server actions complete
     - `src/lib/snapshots.ts`: `createSnapshot()` and `getSnapshots()` implemented
     - `src/app/actions.ts`: `createSnapshotAction()` and `getSnapshotAction()` complete (lines 225-270)
-  - ✅ **Phase 2 - UI**: "Take Snapshot" button implemented
-    - `src/app/page.tsx`: Wrapper function `takeSnapshot()` added (lines 19-22)
-    - Card component with form at bottom of dashboard (lines 153-164)
+  - ✅ **Phase 2 - UI**: "Take Snapshot" button implemented with blue styling
+    - `src/app/page.tsx`: Wrapper function `takeSnapshot()` added (lines 20-23)
+    - Card component with form and styled button (blue with camera emoji 📸)
     - Uses native HTML form with server action (fire-and-forget pattern)
-  - ⏳ **Phase 3 - Chart Visualization**: Basic chart working, needs polish
+  - ✅ **Phase 3 - Chart Visualization**: Basic chart working with Card wrapper
     - ✅ Recharts library installed
     - ✅ `src/components/trends/NetWorthChart.tsx`: Basic line chart component (Client Component)
       - Data transformation with `.map()` to format snapshots for recharts
       - Responsive design with ResponsiveContainer
       - Components: LineChart, Line, XAxis, YAxis, CartesianGrid
-    - ✅ Integrated into dashboard (`src/app/page.tsx` line 151)
+    - ✅ Integrated into dashboard with Card wrapper (`src/app/page.tsx` lines 153-160)
     - ✅ Server-side data fetching via `getSnapshotAction()` in Promise.all (line 35-39)
-    - 📋 TODO: Add Tooltip, currency formatting, theme colors
+    - ✅ Button styling complete across dashboard (color-coded by function)
+    - 📋 TODO: Add Tooltip, currency formatting, theme colors to chart
     - 📋 TODO: Build `TimeRangeSelector.tsx` component (6M, 1Y, 2Y, All time filters)
   - 📊 **Goal**: Fidelity-style charts showing financial growth over time with manual snapshot creation
   - 📄 **Detailed Progress**: See `net-worth-tracking-progress.md` for complete implementation notes
