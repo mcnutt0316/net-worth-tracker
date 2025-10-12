@@ -39,15 +39,19 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
    - Uses native HTML form with server action pattern (fire-and-forget)
    - Page auto-revalidates after snapshot creation via `revalidatePath("/")`
 
-### ✅ Phase 3: Chart Visualization (IN PROGRESS - Oct 5, 2025)
+### ✅ Phase 3: Chart Visualization (COMPLETED - Oct 12, 2025)
 4. **Install charting library**: ✅ COMPLETE
    - Installed recharts for data visualization
-5. **Create chart components** (`src/components/trends/`): ⏳ IN PROGRESS
-   - ✅ `NetWorthChart.tsx` - Basic line chart implemented
+5. **Create chart components** (`src/components/trends/`): ✅ COMPLETE
+   - ✅ `NetWorthChart.tsx` - Polished line chart implemented
      - Client component with proper "use client" directive
      - Data transformation using `.map()` to convert snapshots to chart format
      - Date formatting: `toLocaleDateString('en-US', { month: 'short', year: 'numeric' })`
-     - Recharts components: ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Line
+     - Recharts components: ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Line, Tooltip
+     - ✅ **Tooltip**: Interactive hover tooltip with currency formatting
+     - ✅ **Currency Formatting**: Both YAxis and Tooltip display proper USD formatting using `Intl.NumberFormat`
+     - ✅ **YAxis Width**: Set to `width={100}` to prevent number truncation
+     - ✅ **Theme Colors**: Line uses green success color `hsl(142 76% 36%)` for financial growth
      - Responsive design with ResponsiveContainer (width: 100%, height: 400px)
      - Integrated into dashboard at `src/app/page.tsx` line 151
      - Fetches data server-side via `getSnapshotAction()` in Promise.all
@@ -78,14 +82,17 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 3. **Pattern consistency**: Following existing file patterns makes code maintainable
 4. **Phase approach**: Start simple (manual snapshots) then add complexity (automation)
 
-## Current Status - Oct 7, 2025
+## Current Status - Oct 12, 2025
 - ✅ **Phase 1**: Database foundation complete and tested
 - ✅ **Phase 2**: Snapshot utilities and server actions fully implemented
 - ✅ **Phase 2 (UI)**: "Take Snapshot" button added to dashboard with blue styling
-- ✅ **Phase 3 (Partial)**: Basic NetWorthChart component working
-- ✅ **Phase 3 (UI Enhancement)**: Chart wrapped in Card component, button styling complete
-- ⏳ **Next**: Polish chart (Tooltip, currency formatting, theme colors), build TimeRangeSelector
-- 📊 **Future**: Complete chart visualization and dashboard integration
+- ✅ **Phase 3**: Chart visualization complete with full polish
+  - ✅ Interactive Tooltip with currency formatting
+  - ✅ YAxis and Tooltip both display USD currency format
+  - ✅ Theme colors applied (green success color for growth)
+  - ✅ Chart wrapped in Card component with proper styling
+- ⏳ **Next**: Build TimeRangeSelector component (6M, 1Y, 2Y, All time filters)
+- 📊 **Future**: Dashboard integration enhancements (Phase 4)
 
 ## Implementation Notes & Lessons
 ### Server Action Development Insights
@@ -169,3 +176,39 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 1. ✅ Wrapped NetWorthChart in Card component ✅ DONE
 2. ✅ Enhanced button styling across dashboard (color-coded by function) ✅ DONE
 3. ✅ Updated heading styling for consistent theme ✅ DONE
+
+## Session Progress (Oct 12, 2025) - Chart Polish
+1. ✅ Added Tooltip component to NetWorthChart ✅ DONE
+2. ✅ Implemented currency formatting for Tooltip and YAxis ✅ DONE
+3. ✅ Fixed YAxis number truncation with width adjustment ✅ DONE
+4. ✅ Applied theme colors to chart line (green success color) ✅ DONE
+
+### Key Learnings: Chart Polish & Formatting (Oct 12, 2025)
+**Intl.NumberFormat API:**
+- Used for currency formatting: `Intl.NumberFormat("en-US", {style: "currency", currency: "USD"})`
+- Must call `.format(value)` method to actually format the number
+- Currency code is three letters: `"USD"` not `"US"`
+- Can be used in both `tickFormatter` (YAxis) and `formatter` (Tooltip) props
+
+**Recharts Formatting:**
+- `YAxis` uses `tickFormatter` prop: `tickFormatter={(value) => formatFunction(value)}`
+- `Tooltip` uses `formatter` prop: `formatter={(value) => formatFunction(value)}`
+- TypeScript may require type assertion: `value as number`
+- Both formatters receive the raw data value and return formatted string
+
+**YAxis Width Issues:**
+- Long formatted numbers (like `$10,000.00`) can get cut off
+- Solution: Add `width` prop to YAxis component (e.g., `width={100}`)
+- Alternative: Shorten format by removing decimals with `minimumFractionDigits: 0`
+
+**CSS Variables in React Components:**
+- Theme colors defined in `globals.css` using HSL format without `hsl()` wrapper
+- To use in React: Wrap in `hsl()` function: `stroke="hsl(142 76% 36%)"`
+- Chart colors available: `--chart-1` through `--chart-5`
+- Green (`--chart-2: 142 76% 36%`) represents success/growth in financial contexts
+
+**Learning Approach:**
+- Junior engineer independently implemented all formatting features with hints only
+- Debugged syntax errors (typo: `"currency:"` vs `"currency"`)
+- Successfully applied same formatting pattern to multiple components (YAxis and Tooltip)
+- Learned to reference theme colors from existing CSS variables for consistency
