@@ -20,6 +20,7 @@ export default function NetWorthChart({ snapshots }: NetWorthChartProps){
             value: snapshot.networth
         }
     })
+
     return (
         <ResponsiveContainer width="100%" height={400}>
         <LineChart
@@ -27,8 +28,9 @@ export default function NetWorthChart({ snapshots }: NetWorthChartProps){
         >
             <CartesianGrid strokeDasharray="3 3"/>
             <XAxis dataKey="date"/>
-            <YAxis/>
-            <Line type="monotone" dataKey="value" stroke="#8884d8"/>
+            <Tooltip formatter={(value) => Intl.NumberFormat("en-US", {style: "currency", currency: "USD"}).format(value as number)}/>
+            <YAxis tickFormatter={(value) => Intl.NumberFormat("en-US", {style: "currency", currency: "USD"} ).format(value)} width={100}/>
+            <Line type="monotone" dataKey="value" stroke="hsl(142 76% 36%)"/>
 
         </LineChart>
         </ResponsiveContainer>
