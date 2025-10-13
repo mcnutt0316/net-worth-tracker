@@ -87,7 +87,8 @@ src/
 - `src/lib/calculations.ts` - Net worth calculation utilities (completed Sept 18, 2025)
 - `src/lib/snapshots.ts` - Snapshot CRUD operations (completed Oct 1, 2025)
 - `src/components/auth-form.tsx` - Authentication form with glass effect styling
-- `src/components/trends/NetWorthChart.tsx` - Line chart visualization for net worth over time (basic implementation Oct 5, 2025)
+- `src/components/trends/NetWorthChart.tsx` - Line chart visualization for net worth over time (polished Oct 13, 2025)
+- `src/components/trends/TimeRangeSelector.tsx` - Time range filter buttons (6M, 1Y, 2Y, All) (completed Oct 13, 2025)
 - `src/middleware.ts` - Server-side route protection middleware
 - `prisma/schema.prisma` - Database schema with Asset, Liability, and NetWorthSnapshot models (uses Supabase Auth for users)
 - `prisma/migrations/` - Database migration history
@@ -107,8 +108,8 @@ src/
 - Updated authentication utilities from `getAuth()` to `getUser()` pattern
 - **Database Schema Completed** (Sept 16, 2025): Asset and Liability tables created with proper relationships
 
-## In Progress Features
-- **Net Worth Tracking Over Time** (Oct 7, 2025): Monthly snapshots with trend visualization
+## Completed Features
+- **Net Worth Tracking Over Time** (Oct 13, 2025): Monthly snapshots with Fidelity-style trend visualization ✅
   - ✅ **Phase 1 - Database**: `NetWorthSnapshot` model added (migration: `20250928164126_add_networth_snapshots`)
   - ✅ **Phase 2 - Core Functionality**: Snapshot utilities and server actions complete
     - `src/lib/snapshots.ts`: `createSnapshot()` and `getSnapshots()` implemented
@@ -117,17 +118,23 @@ src/
     - `src/app/page.tsx`: Wrapper function `takeSnapshot()` added (lines 20-23)
     - Card component with form and styled button (blue with camera emoji 📸)
     - Uses native HTML form with server action (fire-and-forget pattern)
-  - ✅ **Phase 3 - Chart Visualization**: Basic chart working with Card wrapper
+  - ✅ **Phase 3 - Chart Visualization**: Fully polished chart with Card wrapper
     - ✅ Recharts library installed
-    - ✅ `src/components/trends/NetWorthChart.tsx`: Basic line chart component (Client Component)
+    - ✅ `src/components/trends/NetWorthChart.tsx`: Polished line chart component (Client Component)
       - Data transformation with `.map()` to format snapshots for recharts
       - Responsive design with ResponsiveContainer
-      - Components: LineChart, Line, XAxis, YAxis, CartesianGrid
+      - Components: LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip
+      - Interactive tooltip with USD currency formatting
+      - YAxis with currency formatting and proper width (100px)
+      - Green theme color for growth indication
+    - ✅ `src/components/trends/TimeRangeSelector.tsx`: Time range filtering component
+      - Button group UI (6M, 1Y, 2Y, All options)
+      - Client-side filtering for instant response
+      - Blue styling for selected, gray for unselected
+      - Integrated into NetWorthChart component
     - ✅ Integrated into dashboard with Card wrapper (`src/app/page.tsx` lines 153-160)
     - ✅ Server-side data fetching via `getSnapshotAction()` in Promise.all (line 35-39)
     - ✅ Button styling complete across dashboard (color-coded by function)
-    - 📋 TODO: Add Tooltip, currency formatting, theme colors to chart
-    - 📋 TODO: Build `TimeRangeSelector.tsx` component (6M, 1Y, 2Y, All time filters)
-  - 📊 **Goal**: Fidelity-style charts showing financial growth over time with manual snapshot creation
+  - 🎯 **Result**: Fidelity-style charts showing financial growth over time with manual snapshot creation
   - 📄 **Detailed Progress**: See `net-worth-tracking-progress.md` for complete implementation notes
 

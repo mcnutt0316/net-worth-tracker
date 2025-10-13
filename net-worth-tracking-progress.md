@@ -55,7 +55,11 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
      - Responsive design with ResponsiveContainer (width: 100%, height: 400px)
      - Integrated into dashboard at `src/app/page.tsx` line 151
      - Fetches data server-side via `getSnapshotAction()` in Promise.all
-   - 📋 `TimeRangeSelector.tsx` - Not yet implemented (6M, 1Y, 2Y, All time options)
+   - ✅ `TimeRangeSelector.tsx` - Fully implemented (6M, 1Y, 2Y, All time options)
+     - Compact button group with Fidelity-style design
+     - Blue styling for selected button, gray for unselected
+     - Integrated into NetWorthChart component
+     - Client-side filtering for instant time range switching
 
 ### 🎨 Phase 4: Dashboard Integration (PLANNED)
 6. **Add trends section** to main dashboard
@@ -82,7 +86,7 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 3. **Pattern consistency**: Following existing file patterns makes code maintainable
 4. **Phase approach**: Start simple (manual snapshots) then add complexity (automation)
 
-## Current Status - Oct 12, 2025
+## Current Status - Oct 13, 2025
 - ✅ **Phase 1**: Database foundation complete and tested
 - ✅ **Phase 2**: Snapshot utilities and server actions fully implemented
 - ✅ **Phase 2 (UI)**: "Take Snapshot" button added to dashboard with blue styling
@@ -91,8 +95,9 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
   - ✅ YAxis and Tooltip both display USD currency format
   - ✅ Theme colors applied (green success color for growth)
   - ✅ Chart wrapped in Card component with proper styling
-- ⏳ **Next**: Build TimeRangeSelector component (6M, 1Y, 2Y, All time filters)
-- 📊 **Future**: Dashboard integration enhancements (Phase 4)
+  - ✅ TimeRangeSelector component (6M, 1Y, 2Y, All time filters)
+- 📊 **Next**: Dashboard integration enhancements (Phase 4)
+- 🎯 **Feature Complete**: Core net worth tracking with Fidelity-style charts fully functional!
 
 ## Implementation Notes & Lessons
 ### Server Action Development Insights
@@ -212,3 +217,69 @@ Add monthly net worth snapshots and Fidelity-style trend visualization to track 
 - Debugged syntax errors (typo: `"currency:"` vs `"currency"`)
 - Successfully applied same formatting pattern to multiple components (YAxis and Tooltip)
 - Learned to reference theme colors from existing CSS variables for consistency
+
+## Session Progress (Oct 13, 2025) - TimeRangeSelector Implementation
+1. ✅ Created `src/components/trends/TimeRangeSelector.tsx` ✅ DONE
+2. ✅ Integrated TimeRangeSelector into NetWorthChart ✅ DONE
+3. ✅ Implemented client-side date filtering logic ✅ DONE
+4. ✅ Styled with Fidelity-inspired button group design ✅ DONE
+
+### Key Learnings: React State & Component Integration (Oct 13, 2025)
+**React State Management with useState:**
+- Pattern: `const [stateVariable, setterFunction] = useState(initialValue)`
+- `selectedRange` holds the current value (read-only)
+- `setSelectedRange` is the function to update state and trigger re-render
+- State persists between renders (React remembers the value)
+- When state changes, entire component function re-runs from top
+
+**TypeScript Generics with useState:**
+- Syntax: `useState<"6M" | "1Y" | "2Y" | "All">("All")`
+- `<...>` is a generic type parameter (tells TypeScript what type the state holds)
+- `"6M" | "1Y" | "2Y" | "All"` is a union type (only these exact strings allowed)
+- Provides type safety: can't accidentally set invalid values
+- Enables autocomplete and compile-time error checking
+
+**React Component Lifecycle:**
+1. **Initial Render**: Function runs → State initialized → JSX returned → Screen displayed
+2. **User Interaction**: Button clicked → State updater called (`setSelectedRange()`)
+3. **Re-render**: React re-runs function → State has new value → New JSX → Screen updates
+4. Repeat cycle for each interaction
+
+**Parent-Child Data Flow:**
+- Data flows DOWN: Parent passes state and functions as props to children
+- Children can't modify parent state directly
+- Children call functions provided by parent to trigger changes
+- Pattern: `<TimeRangeSelector selected={selectedRange} onSelect={setSelectedRange} />`
+
+**Client-Side Filtering Strategy:**
+- Pass ALL snapshots to component (fetched server-side)
+- Filter in client before rendering chart
+- Fast UX: no server roundtrips when switching time ranges
+- `filterSnapshots()` function calculates cutoff date and filters array
+- `.filter()` with date comparison: `new Date(snapshot.createdAt) >= cutoffDate`
+
+**Date Calculations:**
+- `new Date()` gets current date/time
+- `new Date(year, month, day)` creates specific date
+- Months are 0-indexed: `now.getMonth() - 6` goes back 6 months
+- Filter keeps snapshots where `createdAt >= cutoffDate`
+
+**React Fragments (`<>` and `</>`)**:
+- Components must return ONE parent element
+- Fragments group multiple elements without adding extra HTML
+- `<>` is shorthand for `<React.Fragment>`
+- Keeps DOM clean (no unnecessary wrapper divs)
+- Alternative: wrap in `<div>` but adds extra HTML element
+
+**Function Definition vs Invocation:**
+- `const filterSnapshots = () => { ... }` DEFINES the function (creates it)
+- `filterSnapshots()` CALLS/INVOKES the function (runs it)
+- Define once at component level, call when needed in calculations
+
+**Learning Approach:**
+- Deep dive into React fundamentals: state, lifecycle, data flow
+- Understood useState pattern and TypeScript generics
+- Grasped component re-rendering cycle and when functions re-run
+- Learned difference between function definitions and invocations
+- Successfully implemented client-side filtering with date logic
+- Built confidence in React mental model through detailed explanations
