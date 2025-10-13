@@ -1,5 +1,7 @@
 "use client"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import { useState } from "react"
+import TimeRangeSelector from "./TimeRangeSelector"
 
 type Snapshot = {
     id: string,
@@ -14,7 +16,21 @@ type NetWorthChartProps = {
 }
 
 export default function NetWorthChart({ snapshots }: NetWorthChartProps){
-    const chartData = snapshots.map((snapshot) => {
+    const [selectedRange, setSelectedRange] = useState<"6M" | "1Y" | "2Y" | "All">("All")
+    const filterSnapshots = () => {
+        if (selectedRange === "All") 
+            return snapshots
+        const now = new Date()
+        let monthsBack = 0
+        if (selectedRange === "6M") monthsBack = 6
+        if (selectedRange === "1Y") monthsBack = 12
+        if (selectedRange === "2Y") monthsBack = 24
+
+        const cutoffDate = new Date(now.getFullYear(), now.getMonth() - monthsBack, now.getDate())
+
+        return snapshots.filter(snapshot => new Date(snapshot.createdAt) >= cutoffDate)
+    }
+    const chartData = filterSnapshots().map((snapshot) => {
         return {
             date: snapshot.createdAt.toLocaleDateString('en-US', { month: 'short', year: 'numeric'}),
             value: snapshot.networth
@@ -22,6 +38,8 @@ export default function NetWorthChart({ snapshots }: NetWorthChartProps){
     })
 
     return (
+        <>
+        <TimeRangeSelector selected={selectedRange} onSelect={setSelectedRange}/>
         <ResponsiveContainer width="100%" height={400}>
         <LineChart
         data={chartData}
@@ -34,5 +52,6 @@ export default function NetWorthChart({ snapshots }: NetWorthChartProps){
 
         </LineChart>
         </ResponsiveContainer>
+        </>
     )
 }
