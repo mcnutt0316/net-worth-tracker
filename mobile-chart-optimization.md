@@ -198,7 +198,16 @@ Why use `md` instead of `sm` or `lg`?
 
 ## Progress Tracker
 
-- [ ] **Part 1**: Create `formatCurrency()` helper function
+- [x] **Part 1**: Create `formatCurrency()` helper function ✅ (Lines 18-34)
+  - ✅ Handles negative numbers with `isNegative` flag
+  - ✅ Uses `Math.abs()` for absolute value
+  - ✅ Formats millions with "M" suffix
+  - ✅ Formats thousands with "K" suffix
+  - ✅ Formats small numbers normally
+  - ✅ Uses `.toFixed(2)` for decimal precision
+  - ✅ Uses `.replace(/\.0$/, '')` to remove trailing ".0"
+  - ✅ Returns with "-" prefix for negative numbers
+  - ⚠️ **Minor bug to fix**: Lines 22 & 24 use `value` instead of `absoluteValue` in conditionals
 - [ ] **Part 1**: Apply formatter to YAxis `tickFormatter`
 - [ ] **Part 1**: Test abbreviated numbers (K, M)
 - [ ] **Part 2**: Add `useState` for window width
@@ -228,7 +237,25 @@ Why use `md` instead of `sm` or `lg`?
 
 Add your questions, discoveries, and notes here as you work:
 
--
+### Learning Session Notes (Oct 15, 2025)
+
+**Key Concepts Learned:**
+1. **Normalize-Process-Denormalize Pattern**: Store negative flag → work with absolute value → restore sign
+2. **Helper Function Placement**: Standalone arrow functions outside components for reusable, pure logic
+3. **Rule of Three**: Wait until 3rd use before extracting to utility file
+4. **If Statement vs Ternary**: Both work; if/else is more readable for beginners
+5. **Template Literals**: Using backticks and `${}` for string interpolation
+
+**Questions Explored:**
+- When to nest functions vs. keep them standalone? (Depends on if they need props/state)
+- When to create utility files? (Wait until proven reusable across 2-3+ components)
+- How does the function remember if the value was negative? (Store in `isNegative` flag before transformation)
+
+**Bug to Fix:**
+- Lines 22 & 24 should use `absoluteValue` instead of `value` in the conditionals
+- Current: `if(value >= 1_000_000)`
+- Should be: `if(absoluteValue >= 1_000_000)`
+- Why: Negative numbers like `-2000000` would fail the `>= 1_000_000` check
 
 ---
 

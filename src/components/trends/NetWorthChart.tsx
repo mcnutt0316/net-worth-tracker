@@ -19,10 +19,10 @@ const formatCurrency = (value:  number) => {
     const isNegative = value < 0
     const absoluteValue = Math.abs(value)
     let formatted = ""
-    if(value >= 1_000_000){
-        formatted = `$${(value / 1_000_000).toFixed(2).replace(/\.0$/, '')}M`
-    }else if(value >= 1_000){
-        formatted = `$${(value / 1_000).toFixed(2).replace(/\.0$/, '')}K`
+    if(absoluteValue >= 1_000_000){
+        formatted = `$${(absoluteValue / 1_000_000).toFixed(2).replace(/\.0$/, '')}M`
+    }else if(absoluteValue >= 1_000){
+        formatted = `$${(absoluteValue / 1_000).toFixed(2).replace(/\.0$/, '')}K`
     }else{
         formatted = `$${absoluteValue}`
     }
