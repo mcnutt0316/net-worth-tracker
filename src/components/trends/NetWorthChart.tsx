@@ -15,6 +15,24 @@ type NetWorthChartProps = {
     snapshots: Snapshot[]
 }
 
+const formatCurrency = (value:  number) => {
+    const isNegative = value < 0
+    const absoluteValue = Math.abs(value)
+    let formatted = ""
+    if(value >= 1_000_000){
+        formatted = `$${(value / 1_000_000).toFixed(2).replace(/\.0$/, '')}M`
+    }else if(value >= 1_000){
+        formatted = `$${(value / 1_000).toFixed(2).replace(/\.0$/, '')}K`
+    }else{
+        formatted = `$${absoluteValue}`
+    }
+    if(isNegative){
+        return `-${formatted}`
+    }else{
+        return formatted
+    }
+}
+
 export default function NetWorthChart({ snapshots }: NetWorthChartProps){
     const [selectedRange, setSelectedRange] = useState<"6M" | "1Y" | "2Y" | "All">("All")
     const filterSnapshots = () => {
