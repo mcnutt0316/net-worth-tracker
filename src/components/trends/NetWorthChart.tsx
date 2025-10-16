@@ -20,9 +20,9 @@ const formatCurrency = (value:  number) => {
     const absoluteValue = Math.abs(value)
     let formatted = ""
     if(absoluteValue >= 1_000_000){
-        formatted = `$${(absoluteValue / 1_000_000).toFixed(2).replace(/\.0$/, '')}M`
+        formatted = `$${(absoluteValue / 1_000_000).toFixed(0).replace(/\.0$/, '')}M`
     }else if(absoluteValue >= 1_000){
-        formatted = `$${(absoluteValue / 1_000).toFixed(2).replace(/\.0$/, '')}K`
+        formatted = `$${(absoluteValue / 1_000).toFixed(0).replace(/\.0$/, '')}K`
     }else{
         formatted = `$${absoluteValue}`
     }
@@ -65,7 +65,7 @@ export default function NetWorthChart({ snapshots }: NetWorthChartProps){
             <CartesianGrid strokeDasharray="3 3"/>
             <XAxis dataKey="date"/>
             <Tooltip formatter={(value) => Intl.NumberFormat("en-US", {style: "currency", currency: "USD"}).format(value as number)}/>
-            <YAxis tickFormatter={(value) => Intl.NumberFormat("en-US", {style: "currency", currency: "USD"} ).format(value)} width={100}/>
+            <YAxis tickFormatter={(value) => formatCurrency(value)} width={50}/>
             <Line type="monotone" dataKey="value" stroke="hsl(142 76% 36%)"/>
 
         </LineChart>
